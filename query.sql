@@ -90,7 +90,11 @@ INSERT INTO plan (
 UPDATE plan SET start_date = ?, end_date = ?, amount_expr = ? WHERE id = ?;
 
 -- name: GetPlanPeriodsByPlan :many
-SELECT * FROM plan_period WHERE plan_id = ?;
+SELECT * 
+FROM plan_period 
+WHERE plan_id = ? 
+    AND period_start >= ? 
+    AND period_end < ?;
 
 -- name: GetPlanPeriods :many
 SELECT sqlc.embed(plan_period), sqlc.embed(plan)
@@ -111,8 +115,11 @@ INSERT INTO plan_period (
 -- name: UpdatePlanPeriod :exec
 UPDATE plan_period SET amount = ? WHERE id = ?;
 
--- name: DeletePlanPeriod :exec
-DELETE FROM plan_period WHERE id = ?;
+-- name: DeletePlanPeriods :exec
+DELETE FROM plan_period 
+WHERE plan_id = ?
+    AND period_start >= ?
+    AND period_end < ?;
 
 -- name: GetRules :many
 SELECT * FROM rule 
