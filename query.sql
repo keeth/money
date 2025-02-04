@@ -1,10 +1,10 @@
--- name: GetAccountByXid :one
+-- name: GetAccByXid :one
 SELECT * FROM acc WHERE xid = ? LIMIT 1;
 
--- name: GetAccounts :many
+-- name: GetAccs :many
 SELECT * FROM acc;
 
--- name: CreateAccount :exec
+-- name: CreateAcc :exec
 INSERT INTO acc (
     xid, 
     name, 
@@ -16,10 +16,10 @@ INSERT INTO acc (
 ) 
 RETURNING id;
 
--- name: GetTransactionByAccountAndXid :one
+-- name: GetTxByAccAndXid :one
 SELECT * FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1;
 
--- name: GetTransactions :many
+-- name: GetTxs :many
 SELECT sqlc.embed(tx), sqlc.embed(acc), sqlc.embed(cat)
 FROM tx
 JOIN acc ON tx.acc_id = acc.id
@@ -29,7 +29,7 @@ WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?;
 
--- name: CreateTransaction :exec
+-- name: CreateTx :exec
 INSERT INTO tx (
     xid, 
     date, 
@@ -44,7 +44,7 @@ INSERT INTO tx (
     ?, ?, ?, ?, ?, ?, ?, ?, ?
 ) RETURNING id;
 
--- name: UpdateTransaction :exec
+-- name: UpdateTx :exec
 UPDATE tx SET
     date = ?,
     desc = ?,
@@ -52,16 +52,37 @@ UPDATE tx SET
     ord = ?
 WHERE id = ?;
 
--- name: GetCategories :many
+-- name: CreateOrUpdateTx :exec
+INSERT INTO tx (
+    xid, 
+    date, 
+    orig_date, 
+    desc, 
+    orig_desc, 
+    amount, 
+    orig_amount, 
+    acc_id,
+    ord
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
+) 
+ON CONFLICT (xid, acc_id) DO UPDATE SET
+    date = EXCLUDED.date,
+    desc = EXCLUDED.desc,
+    amount = EXCLUDED.amount,
+    ord = EXCLUDED.ord
+RETURNING id;
+
+-- name: GetCats :many
 SELECT * FROM cat WHERE is_active = 1 ORDER BY name;
 
--- name: CreateCategory :exec
+-- name: CreateCat :exec
 INSERT INTO cat (name, kind, is_active) VALUES (?, ?, 1);
 
--- name: UpdateCategory :exec
+-- name: UpdateCat :exec
 UPDATE cat SET name = ? WHERE id = ?;
 
--- name: DeactivateCategory :exec
+-- name: DeactivateCat :exec
 UPDATE cat SET is_active = 0 WHERE id = ?;
 
 -- name: GetPlans :many
