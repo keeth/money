@@ -14,10 +14,12 @@ const createAcc = `-- name: CreateAcc :exec
 INSERT INTO acc (
     xid, 
     name, 
+    kind,
     is_active
 ) VALUES (
     ?, 
-    ?, 
+    ?,
+    ?,
     1
 ) 
 RETURNING id
@@ -26,10 +28,11 @@ RETURNING id
 type CreateAccParams struct {
 	Xid  string
 	Name string
+	Kind string
 }
 
 func (q *Queries) CreateAcc(ctx context.Context, arg CreateAccParams) error {
-	_, err := q.db.ExecContext(ctx, createAcc, arg.Xid, arg.Name)
+	_, err := q.db.ExecContext(ctx, createAcc, arg.Xid, arg.Name, arg.Kind)
 	return err
 }
 
@@ -286,7 +289,7 @@ func (q *Queries) DeleteRule(ctx context.Context, id int64) error {
 }
 
 const getAccByXid = `-- name: GetAccByXid :one
-SELECT id, name, xid, is_active FROM acc WHERE xid = ? LIMIT 1
+SELECT id, name, xid, kind, is_active FROM acc WHERE xid = ? LIMIT 1
 `
 
 func (q *Queries) GetAccByXid(ctx context.Context, xid string) (Acc, error) {
@@ -296,13 +299,14 @@ func (q *Queries) GetAccByXid(ctx context.Context, xid string) (Acc, error) {
 		&i.ID,
 		&i.Name,
 		&i.Xid,
+		&i.Kind,
 		&i.IsActive,
 	)
 	return i, err
 }
 
 const getAccs = `-- name: GetAccs :many
-SELECT id, name, xid, is_active FROM acc
+SELECT id, name, xid, kind, is_active FROM acc
 `
 
 func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
@@ -318,6 +322,7 @@ func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
 			&i.ID,
 			&i.Name,
 			&i.Xid,
+			&i.Kind,
 			&i.IsActive,
 		); err != nil {
 			return nil, err
@@ -576,7 +581,7 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 }
 
 const getTxs = `-- name: GetTxs :many
-SELECT tx.id, tx.xid, tx.date, tx.orig_date, tx."desc", tx.orig_desc, tx.amount, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.name, acc.xid, acc.is_active, cat.id, cat.name, cat.kind, cat.is_active
+SELECT tx.id, tx.xid, tx.date, tx.orig_date, tx."desc", tx.orig_desc, tx.amount, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.name, cat.kind, cat.is_active
 FROM tx
 JOIN acc ON tx.acc_id = acc.id
 LEFT JOIN tx_cat ON tx.id = tx_cat.tx_id
@@ -620,6 +625,7 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Acc.ID,
 			&i.Acc.Name,
 			&i.Acc.Xid,
+			&i.Acc.Kind,
 			&i.Acc.IsActive,
 			&i.Cat.ID,
 			&i.Cat.Name,

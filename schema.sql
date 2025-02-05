@@ -2,6 +2,7 @@ CREATE TABLE acc (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     xid TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL CHECK (kind IN ('bank', 'cc')),
     is_active INTEGER NOT NULL CHECK (is_active IN (0, 1))
 );
 

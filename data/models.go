@@ -12,6 +12,7 @@ type Acc struct {
 	ID       int64
 	Name     string
 	Xid      string
+	Kind     string
 	IsActive int64
 }
 

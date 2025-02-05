@@ -2,7 +2,6 @@ package money
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	ofx "github.com/aclindsa/ofxgo"
@@ -21,27 +20,29 @@ func NewApp(ctx context.Context, q *data.Queries) *App {
 	}
 }
 
-func (a *App) ImportQFX(acc *data.Acc, file *os.File) error {
-	resp, err := ofx.ParseResponse(file)
+var maxAccounts = 10
+
+func (a *App) ImportOFX(file *os.File) error {
+	ofxResp, err := ofx.ParseResponse(file)
 	if err != nil {
 		return err
 	}
 
-	var ofxTransactions []ofx.Transaction
-
-	if len(resp.Bank) > 0 {
-		if stmt, ok := resp.Bank[0].(*ofx.StatementResponse); ok {
-			ofxTransactions = stmt.BankTranList.Transactions
-		}
-	} else if len(resp.CreditCard) > 0 {
-		if stmt, ok := resp.CreditCard[0].(*ofx.StatementResponse); ok {
-			ofxTransactions = stmt.BankTranList.Transactions
-		}
-	} else {
-		return fmt.Errorf("no information found in file")
+	resp, err := ParseOfxResponse(ofxResp)
+	if err != nil {
+		return err
 	}
 
-	for _, ofxTx := range ofxTransactions {
+	acc, err := a.queries.GetOrCreateAcc(a.ctx, data.CreateAccParams{
+		Xid:  resp.ID,
+		Kind: resp.Kind,
+	}, maxAccounts)
+
+	if err != nil {
+		return err
+	}
+
+	for _, ofxTx := range resp.Transactions {
 		tx := ParseOfxTransaction(&ofxTx)
 
 		err = a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
@@ -49,7 +50,6 @@ func (a *App) ImportQFX(acc *data.Acc, file *os.File) error {
 			Amount:     tx.Amount,
 			Desc:       tx.Desc,
 			AccID:      acc.ID,
-			Ord:        "",
 			Xid:        tx.ID,
 			OrigDate:   tx.Date,
 			OrigAmount: tx.Amount,

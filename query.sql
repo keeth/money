@@ -8,10 +8,12 @@ SELECT * FROM acc;
 INSERT INTO acc (
     xid, 
     name, 
+    kind,
     is_active
 ) VALUES (
     ?, 
-    ?, 
+    ?,
+    ?,
     1
 ) 
 RETURNING id;
