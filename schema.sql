@@ -1,5 +1,7 @@
 CREATE TABLE acc (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     name TEXT NOT NULL UNIQUE,
     xid TEXT NOT NULL UNIQUE,
     kind TEXT NOT NULL CHECK (kind IN ('bank', 'cc')),
@@ -8,6 +10,8 @@ CREATE TABLE acc (
 
 CREATE TABLE tx (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     xid TEXT NOT NULL,
     date TEXT NOT NULL,
     orig_date TEXT NOT NULL,
@@ -25,6 +29,8 @@ CREATE INDEX idx_tx_ord ON tx(ord);
 
 CREATE TABLE cat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     name TEXT NOT NULL UNIQUE,
     kind TEXT NOT NULL CHECK (kind IN ('income', 'expense', 'transfer')),
     is_active INTEGER NOT NULL CHECK (is_active IN (0, 1))
@@ -40,6 +46,8 @@ CREATE TABLE tx_cat (
 
 CREATE TABLE plan (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     start_date TEXT,
     end_date TEXT,
     cat_id INTEGER NOT NULL,
@@ -53,6 +61,8 @@ CREATE INDEX idx_plan_end_date ON plan(end_date);
 
 CREATE TABLE plan_period (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     plan_id INTEGER NOT NULL,
     period_start TEXT NOT NULL,
     period_end TEXT NOT NULL,
@@ -66,6 +76,8 @@ CREATE INDEX idx_plan_eval_period_end ON plan_eval(period_end);
 
 CREATE TABLE rule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT current_timestamp,
+    updated_at TEXT NOT NULL DEFAULT current_timestamp,
     start_date TEXT,
     end_date TEXT,
     test_expr TEXT NOT NULL,

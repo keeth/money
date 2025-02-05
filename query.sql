@@ -4,7 +4,7 @@ SELECT * FROM acc WHERE xid = ? LIMIT 1;
 -- name: GetAccs :many
 SELECT * FROM acc;
 
--- name: CreateAcc :exec
+-- name: CreateAcc :one
 INSERT INTO acc (
     xid, 
     name, 
@@ -31,21 +31,6 @@ WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?;
 
--- name: CreateTx :exec
-INSERT INTO tx (
-    xid, 
-    date, 
-    orig_date, 
-    desc, 
-    orig_desc, 
-    amount, 
-    orig_amount, 
-    acc_id,
-    ord
-) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?
-) RETURNING id;
-
 -- name: UpdateTx :exec
 UPDATE tx SET
     date = ?,
@@ -54,7 +39,7 @@ UPDATE tx SET
     ord = ?
 WHERE id = ?;
 
--- name: CreateOrUpdateTx :exec
+-- name: CreateOrUpdateTx :one
 INSERT INTO tx (
     xid, 
     date, 
@@ -72,8 +57,9 @@ ON CONFLICT (xid, acc_id) DO UPDATE SET
     date = EXCLUDED.date,
     desc = EXCLUDED.desc,
     amount = EXCLUDED.amount,
-    ord = EXCLUDED.ord
-RETURNING id;
+    ord = EXCLUDED.ord,
+    updated_at = current_timestamp
+RETURNING id, created_at, updated_at;
 
 -- name: GetCats :many
 SELECT * FROM cat WHERE is_active = 1 ORDER BY name;

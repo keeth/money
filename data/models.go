@@ -9,22 +9,28 @@ import (
 )
 
 type Acc struct {
-	ID       int64
-	Name     string
-	Xid      string
-	Kind     string
-	IsActive int64
+	ID        int64
+	CreatedAt string
+	UpdatedAt string
+	Name      string
+	Xid       string
+	Kind      string
+	IsActive  int64
 }
 
 type Cat struct {
-	ID       int64
-	Name     string
-	Kind     string
-	IsActive int64
+	ID        int64
+	CreatedAt string
+	UpdatedAt string
+	Name      string
+	Kind      string
+	IsActive  int64
 }
 
 type Plan struct {
 	ID         int64
+	CreatedAt  string
+	UpdatedAt  string
 	StartDate  sql.NullString
 	EndDate    sql.NullString
 	CatID      int64
@@ -34,6 +40,8 @@ type Plan struct {
 
 type PlanPeriod struct {
 	ID          int64
+	CreatedAt   string
+	UpdatedAt   string
 	PlanID      int64
 	PeriodStart string
 	PeriodEnd   string
@@ -42,6 +50,8 @@ type PlanPeriod struct {
 
 type Rule struct {
 	ID         int64
+	CreatedAt  string
+	UpdatedAt  string
 	StartDate  sql.NullString
 	EndDate    sql.NullString
 	TestExpr   string
@@ -54,6 +64,8 @@ type Rule struct {
 
 type Tx struct {
 	ID         int64
+	CreatedAt  string
+	UpdatedAt  string
 	Xid        string
 	Date       string
 	OrigDate   string

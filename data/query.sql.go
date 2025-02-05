@@ -10,7 +10,7 @@ import (
 	"database/sql"
 )
 
-const createAcc = `-- name: CreateAcc :exec
+const createAcc = `-- name: CreateAcc :one
 INSERT INTO acc (
     xid, 
     name, 
@@ -31,9 +31,11 @@ type CreateAccParams struct {
 	Kind string
 }
 
-func (q *Queries) CreateAcc(ctx context.Context, arg CreateAccParams) error {
-	_, err := q.db.ExecContext(ctx, createAcc, arg.Xid, arg.Name, arg.Kind)
-	return err
+func (q *Queries) CreateAcc(ctx context.Context, arg CreateAccParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createAcc, arg.Xid, arg.Name, arg.Kind)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createCat = `-- name: CreateCat :exec
@@ -50,7 +52,7 @@ func (q *Queries) CreateCat(ctx context.Context, arg CreateCatParams) error {
 	return err
 }
 
-const createOrUpdateTx = `-- name: CreateOrUpdateTx :exec
+const createOrUpdateTx = `-- name: CreateOrUpdateTx :one
 INSERT INTO tx (
     xid, 
     date, 
@@ -68,8 +70,9 @@ ON CONFLICT (xid, acc_id) DO UPDATE SET
     date = EXCLUDED.date,
     desc = EXCLUDED.desc,
     amount = EXCLUDED.amount,
-    ord = EXCLUDED.ord
-RETURNING id
+    ord = EXCLUDED.ord,
+    updated_at = current_timestamp
+RETURNING id, created_at, updated_at
 `
 
 type CreateOrUpdateTxParams struct {
@@ -84,8 +87,14 @@ type CreateOrUpdateTxParams struct {
 	Ord        string
 }
 
-func (q *Queries) CreateOrUpdateTx(ctx context.Context, arg CreateOrUpdateTxParams) error {
-	_, err := q.db.ExecContext(ctx, createOrUpdateTx,
+type CreateOrUpdateTxRow struct {
+	ID        int64
+	CreatedAt string
+	UpdatedAt string
+}
+
+func (q *Queries) CreateOrUpdateTx(ctx context.Context, arg CreateOrUpdateTxParams) (CreateOrUpdateTxRow, error) {
+	row := q.db.QueryRowContext(ctx, createOrUpdateTx,
 		arg.Xid,
 		arg.Date,
 		arg.OrigDate,
@@ -96,7 +105,9 @@ func (q *Queries) CreateOrUpdateTx(ctx context.Context, arg CreateOrUpdateTxPara
 		arg.AccID,
 		arg.Ord,
 	)
-	return err
+	var i CreateOrUpdateTxRow
+	err := row.Scan(&i.ID, &i.CreatedAt, &i.UpdatedAt)
+	return i, err
 }
 
 const createPlan = `-- name: CreatePlan :exec
@@ -209,49 +220,6 @@ func (q *Queries) CreateRule(ctx context.Context, arg CreateRuleParams) error {
 	return err
 }
 
-const createTx = `-- name: CreateTx :exec
-INSERT INTO tx (
-    xid, 
-    date, 
-    orig_date, 
-    desc, 
-    orig_desc, 
-    amount, 
-    orig_amount, 
-    acc_id,
-    ord
-) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?
-) RETURNING id
-`
-
-type CreateTxParams struct {
-	Xid        string
-	Date       string
-	OrigDate   string
-	Desc       string
-	OrigDesc   string
-	Amount     float64
-	OrigAmount float64
-	AccID      int64
-	Ord        string
-}
-
-func (q *Queries) CreateTx(ctx context.Context, arg CreateTxParams) error {
-	_, err := q.db.ExecContext(ctx, createTx,
-		arg.Xid,
-		arg.Date,
-		arg.OrigDate,
-		arg.Desc,
-		arg.OrigDesc,
-		arg.Amount,
-		arg.OrigAmount,
-		arg.AccID,
-		arg.Ord,
-	)
-	return err
-}
-
 const deactivateCat = `-- name: DeactivateCat :exec
 UPDATE cat SET is_active = 0 WHERE id = ?
 `
@@ -289,7 +257,7 @@ func (q *Queries) DeleteRule(ctx context.Context, id int64) error {
 }
 
 const getAccByXid = `-- name: GetAccByXid :one
-SELECT id, name, xid, kind, is_active FROM acc WHERE xid = ? LIMIT 1
+SELECT id, created_at, updated_at, name, xid, kind, is_active FROM acc WHERE xid = ? LIMIT 1
 `
 
 func (q *Queries) GetAccByXid(ctx context.Context, xid string) (Acc, error) {
@@ -297,6 +265,8 @@ func (q *Queries) GetAccByXid(ctx context.Context, xid string) (Acc, error) {
 	var i Acc
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.Name,
 		&i.Xid,
 		&i.Kind,
@@ -306,7 +276,7 @@ func (q *Queries) GetAccByXid(ctx context.Context, xid string) (Acc, error) {
 }
 
 const getAccs = `-- name: GetAccs :many
-SELECT id, name, xid, kind, is_active FROM acc
+SELECT id, created_at, updated_at, name, xid, kind, is_active FROM acc
 `
 
 func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
@@ -320,6 +290,8 @@ func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
 		var i Acc
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.Name,
 			&i.Xid,
 			&i.Kind,
@@ -339,7 +311,7 @@ func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
 }
 
 const getCats = `-- name: GetCats :many
-SELECT id, name, kind, is_active FROM cat WHERE is_active = 1 ORDER BY name
+SELECT id, created_at, updated_at, name, kind, is_active FROM cat WHERE is_active = 1 ORDER BY name
 `
 
 func (q *Queries) GetCats(ctx context.Context) ([]Cat, error) {
@@ -353,6 +325,8 @@ func (q *Queries) GetCats(ctx context.Context) ([]Cat, error) {
 		var i Cat
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.Name,
 			&i.Kind,
 			&i.IsActive,
@@ -371,7 +345,7 @@ func (q *Queries) GetCats(ctx context.Context) ([]Cat, error) {
 }
 
 const getPlanPeriods = `-- name: GetPlanPeriods :many
-SELECT plan_period.id, plan_period.plan_id, plan_period.period_start, plan_period.period_end, plan_period.amount, "plan".id, "plan".start_date, "plan".end_date, "plan".cat_id, "plan".amount_expr, "plan".period
+SELECT plan_period.id, plan_period.created_at, plan_period.updated_at, plan_period.plan_id, plan_period.period_start, plan_period.period_end, plan_period.amount, "plan".id, "plan".created_at, "plan".updated_at, "plan".start_date, "plan".end_date, "plan".cat_id, "plan".amount_expr, "plan".period
 FROM plan_period 
 JOIN plan ON plan_period.plan_id = plan.id
 WHERE period_start >= ? AND period_end < ?
@@ -398,11 +372,15 @@ func (q *Queries) GetPlanPeriods(ctx context.Context, arg GetPlanPeriodsParams) 
 		var i GetPlanPeriodsRow
 		if err := rows.Scan(
 			&i.PlanPeriod.ID,
+			&i.PlanPeriod.CreatedAt,
+			&i.PlanPeriod.UpdatedAt,
 			&i.PlanPeriod.PlanID,
 			&i.PlanPeriod.PeriodStart,
 			&i.PlanPeriod.PeriodEnd,
 			&i.PlanPeriod.Amount,
 			&i.Plan.ID,
+			&i.Plan.CreatedAt,
+			&i.Plan.UpdatedAt,
 			&i.Plan.StartDate,
 			&i.Plan.EndDate,
 			&i.Plan.CatID,
@@ -423,7 +401,7 @@ func (q *Queries) GetPlanPeriods(ctx context.Context, arg GetPlanPeriodsParams) 
 }
 
 const getPlanPeriodsByPlan = `-- name: GetPlanPeriodsByPlan :many
-SELECT id, plan_id, period_start, period_end, amount 
+SELECT id, created_at, updated_at, plan_id, period_start, period_end, amount 
 FROM plan_period 
 WHERE plan_id = ? 
     AND period_start >= ? 
@@ -447,6 +425,8 @@ func (q *Queries) GetPlanPeriodsByPlan(ctx context.Context, arg GetPlanPeriodsBy
 		var i PlanPeriod
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.PlanID,
 			&i.PeriodStart,
 			&i.PeriodEnd,
@@ -466,7 +446,7 @@ func (q *Queries) GetPlanPeriodsByPlan(ctx context.Context, arg GetPlanPeriodsBy
 }
 
 const getPlans = `-- name: GetPlans :many
-SELECT id, start_date, end_date, cat_id, amount_expr, period 
+SELECT id, created_at, updated_at, start_date, end_date, cat_id, amount_expr, period 
 FROM plan 
 WHERE (start_date IS NULL OR start_date >= ?) 
     AND (end_date IS NULL OR end_date < ?)
@@ -489,6 +469,8 @@ func (q *Queries) GetPlans(ctx context.Context, arg GetPlansParams) ([]Plan, err
 		var i Plan
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.StartDate,
 			&i.EndDate,
 			&i.CatID,
@@ -509,7 +491,7 @@ func (q *Queries) GetPlans(ctx context.Context, arg GetPlansParams) ([]Plan, err
 }
 
 const getRules = `-- name: GetRules :many
-SELECT id, start_date, end_date, test_expr, cat_id, amount_expr, desc_expr, date_expr, ord FROM rule 
+SELECT id, created_at, updated_at, start_date, end_date, test_expr, cat_id, amount_expr, desc_expr, date_expr, ord FROM rule 
 WHERE (start_date IS NULL OR start_date >= ?) 
     AND (end_date IS NULL OR end_date < ?)
 ORDER BY ord
@@ -531,6 +513,8 @@ func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]Rule, err
 		var i Rule
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.StartDate,
 			&i.EndDate,
 			&i.TestExpr,
@@ -554,7 +538,7 @@ func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]Rule, err
 }
 
 const getTxByAccAndXid = `-- name: GetTxByAccAndXid :one
-SELECT id, xid, date, orig_date, "desc", orig_desc, amount, orig_amount, acc_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
+SELECT id, created_at, updated_at, xid, date, orig_date, "desc", orig_desc, amount, orig_amount, acc_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
 `
 
 type GetTxByAccAndXidParams struct {
@@ -567,6 +551,8 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 	var i Tx
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.Xid,
 		&i.Date,
 		&i.OrigDate,
@@ -581,7 +567,7 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 }
 
 const getTxs = `-- name: GetTxs :many
-SELECT tx.id, tx.xid, tx.date, tx.orig_date, tx."desc", tx.orig_desc, tx.amount, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.name, cat.kind, cat.is_active
+SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx.orig_date, tx."desc", tx.orig_desc, tx.amount, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active
 FROM tx
 JOIN acc ON tx.acc_id = acc.id
 LEFT JOIN tx_cat ON tx.id = tx_cat.tx_id
@@ -613,6 +599,8 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 		var i GetTxsRow
 		if err := rows.Scan(
 			&i.Tx.ID,
+			&i.Tx.CreatedAt,
+			&i.Tx.UpdatedAt,
 			&i.Tx.Xid,
 			&i.Tx.Date,
 			&i.Tx.OrigDate,
@@ -623,11 +611,15 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Tx.AccID,
 			&i.Tx.Ord,
 			&i.Acc.ID,
+			&i.Acc.CreatedAt,
+			&i.Acc.UpdatedAt,
 			&i.Acc.Name,
 			&i.Acc.Xid,
 			&i.Acc.Kind,
 			&i.Acc.IsActive,
 			&i.Cat.ID,
+			&i.Cat.CreatedAt,
+			&i.Cat.UpdatedAt,
 			&i.Cat.Name,
 			&i.Cat.Kind,
 			&i.Cat.IsActive,

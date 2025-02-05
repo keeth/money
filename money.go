@@ -35,20 +35,23 @@ func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
 		return ImportResult{}, err
 	}
 
-	acc, err := a.queries.GetOrCreateAcc(a.ctx, data.CreateAccParams{
+	accRow, err := a.queries.GetOrCreateAcc(a.ctx, data.CreateAccParams{
 		Xid:  resp.ID,
 		Kind: resp.Kind,
 	}, maxAccounts)
 	if err != nil {
 		return ImportResult{}, err
 	}
+	if accRow.Created {
+		result.AccCreated++
+	}
 
 	for _, tx := range resp.Transactions {
-		err = a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
+		txRow, err := a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
 			Date:       tx.Date,
 			Amount:     tx.Amount,
 			Desc:       tx.Desc,
-			AccID:      acc.ID,
+			AccID:      accRow.Acc.ID,
 			Xid:        tx.ID,
 			OrigDate:   tx.Date,
 			OrigAmount: tx.Amount,
@@ -57,7 +60,11 @@ func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
 		if err != nil {
 			return ImportResult{}, err
 		}
-		result.TxCreated++
+		if txRow.Created {
+			result.TxCreated++
+		} else {
+			result.TxUpdated++
+		}
 	}
 	return result, nil
 }
