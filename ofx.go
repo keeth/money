@@ -2,6 +2,7 @@ package money
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -33,7 +34,7 @@ func cleanMemo(s string) string {
 	return memoRe.ReplaceAllString(s, "")
 }
 
-func ParseOfxTransaction(trans *ofx.Transaction) ParsedTransaction {
+func ParseOfxTransaction(trans ofx.Transaction) ParsedTransaction {
 	amount, _ := trans.TrnAmt.Float64()
 	var desc []string
 	if trans.Name != "" {
@@ -53,17 +54,24 @@ func ParseOfxTransaction(trans *ofx.Transaction) ParsedTransaction {
 }
 
 type ParsedResponse struct {
-	Transactions []ofx.Transaction
+	Transactions []ParsedTransaction
 	Kind         string
 	ID           string
 }
 
-func ParseOfxResponse(resp *ofx.Response) (ParsedResponse, error) {
+func ParseOfxResponse(file *os.File) (ParsedResponse, error) {
+	resp, err := ofx.ParseResponse(file)
+	if err != nil {
+		return ParsedResponse{}, err
+	}
 	parsed := ParsedResponse{}
 	xidParts := []string{}
 	if len(resp.Bank) > 0 {
 		if stmt, ok := resp.Bank[0].(*ofx.StatementResponse); ok {
-			parsed.Transactions = stmt.BankTranList.Transactions
+			parsed.Transactions = make([]ParsedTransaction, len(stmt.BankTranList.Transactions))
+			for i, tx := range stmt.BankTranList.Transactions {
+				parsed.Transactions[i] = ParseOfxTransaction(tx)
+			}
 			if stmt.BankAcctFrom.BankID != "" {
 				xidParts = append(xidParts, stmt.BankAcctFrom.BankID.String())
 			}
@@ -77,7 +85,10 @@ func ParseOfxResponse(resp *ofx.Response) (ParsedResponse, error) {
 		parsed.Kind = "bank"
 	} else if len(resp.CreditCard) > 0 {
 		if stmt, ok := resp.CreditCard[0].(*ofx.CCStatementResponse); ok {
-			parsed.Transactions = stmt.BankTranList.Transactions
+			parsed.Transactions = make([]ParsedTransaction, len(stmt.BankTranList.Transactions))
+			for i, tx := range stmt.BankTranList.Transactions {
+				parsed.Transactions[i] = ParseOfxTransaction(tx)
+			}
 			xidParts = append(xidParts, stmt.CCAcctFrom.AcctID.String())
 		}
 		parsed.Kind = "cc"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	ofx "github.com/aclindsa/ofxgo"
 	data "github.com/keeth/money/data"
 )
 
@@ -22,29 +21,29 @@ func NewApp(ctx context.Context, q *data.Queries) *App {
 
 var maxAccounts = 10
 
-func (a *App) ImportOFX(file *os.File) error {
-	ofxResp, err := ofx.ParseResponse(file)
-	if err != nil {
-		return err
-	}
+type ImportResult struct {
+	TxCreated  int
+	TxUpdated  int
+	AccCreated int
+}
 
-	resp, err := ParseOfxResponse(ofxResp)
+func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
+	result := ImportResult{}
+
+	resp, err := ParseOfxResponse(file)
 	if err != nil {
-		return err
+		return ImportResult{}, err
 	}
 
 	acc, err := a.queries.GetOrCreateAcc(a.ctx, data.CreateAccParams{
 		Xid:  resp.ID,
 		Kind: resp.Kind,
 	}, maxAccounts)
-
 	if err != nil {
-		return err
+		return ImportResult{}, err
 	}
 
-	for _, ofxTx := range resp.Transactions {
-		tx := ParseOfxTransaction(&ofxTx)
-
+	for _, tx := range resp.Transactions {
 		err = a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
 			Date:       tx.Date,
 			Amount:     tx.Amount,
@@ -55,6 +54,10 @@ func (a *App) ImportOFX(file *os.File) error {
 			OrigAmount: tx.Amount,
 			OrigDesc:   tx.Desc,
 		})
+		if err != nil {
+			return ImportResult{}, err
+		}
+		result.TxCreated++
 	}
-	return nil
+	return result, nil
 }
