@@ -60,7 +60,6 @@ CREATE INDEX idx_plan_start_date ON plan(start_date);
 CREATE INDEX idx_plan_end_date ON plan(end_date);
 
 CREATE TABLE plan_period (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL DEFAULT current_timestamp,
     updated_at TEXT NOT NULL DEFAULT current_timestamp,
     plan_id INTEGER NOT NULL,
@@ -71,8 +70,8 @@ CREATE TABLE plan_period (
     PRIMARY KEY (plan_id, period_start, period_end)
 );
 
-CREATE INDEX idx_plan_eval_period_start ON plan_eval(period_start);
-CREATE INDEX idx_plan_eval_period_end ON plan_eval(period_end);
+CREATE INDEX idx_plan_period_start ON plan_period(period_start);
+CREATE INDEX idx_plan_period_end ON plan_period(period_end);
 
 CREATE TABLE rule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
