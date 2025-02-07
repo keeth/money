@@ -39,7 +39,6 @@ type Plan struct {
 }
 
 type PlanPeriod struct {
-	ID          int64
 	CreatedAt   string
 	UpdatedAt   string
 	PlanID      int64
@@ -68,11 +67,11 @@ type Tx struct {
 	UpdatedAt  string
 	Xid        string
 	Date       string
-	OrigDate   string
 	Desc       string
-	OrigDesc   string
 	Amount     float64
-	OrigAmount float64
+	OrigDate   sql.NullString
+	OrigDesc   sql.NullString
+	OrigAmount sql.NullFloat64
 	AccID      int64
 	Ord        string
 }

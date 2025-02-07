@@ -22,11 +22,9 @@ RETURNING id;
 SELECT * FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1;
 
 -- name: GetTxs :many
-SELECT sqlc.embed(tx), sqlc.embed(acc), sqlc.embed(cat)
+SELECT sqlc.embed(tx), sqlc.embed(acc)
 FROM tx
-JOIN acc ON tx.acc_id = acc.id
-LEFT JOIN tx_cat ON tx.id = tx_cat.tx_id
-LEFT JOIN cat ON tx_cat.cat_id = cat.id
+INNER JOIN acc ON tx.acc_id = acc.id
 WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?;
@@ -122,7 +120,10 @@ INSERT INTO plan_period (
 );
 
 -- name: UpdatePlanPeriod :exec
-UPDATE plan_period SET amount = ? WHERE id = ?;
+UPDATE plan_period SET amount = ? 
+WHERE plan_id = ? 
+    AND period_start = ? 
+AND period_end = ?;
 
 -- name: DeletePlanPeriods :exec
 DELETE FROM plan_period 

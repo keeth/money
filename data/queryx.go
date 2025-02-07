@@ -66,5 +66,6 @@ func (q *Queries) GetOrCreateAcc(ctx context.Context, arg CreateAccParams, maxAt
 			return result, fmt.Errorf("failed to create account after %d attempts", maxAttempts)
 		}
 	}
+	result.Acc = acc
 	return result, nil
 }

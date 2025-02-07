@@ -78,11 +78,11 @@ RETURNING id, created_at, updated_at
 type CreateOrUpdateTxParams struct {
 	Xid        string
 	Date       string
-	OrigDate   string
+	OrigDate   sql.NullString
 	Desc       string
-	OrigDesc   string
+	OrigDesc   sql.NullString
 	Amount     float64
-	OrigAmount float64
+	OrigAmount sql.NullFloat64
 	AccID      int64
 	Ord        string
 }
@@ -345,7 +345,7 @@ func (q *Queries) GetCats(ctx context.Context) ([]Cat, error) {
 }
 
 const getPlanPeriods = `-- name: GetPlanPeriods :many
-SELECT plan_period.id, plan_period.created_at, plan_period.updated_at, plan_period.plan_id, plan_period.period_start, plan_period.period_end, plan_period.amount, "plan".id, "plan".created_at, "plan".updated_at, "plan".start_date, "plan".end_date, "plan".cat_id, "plan".amount_expr, "plan".period
+SELECT plan_period.created_at, plan_period.updated_at, plan_period.plan_id, plan_period.period_start, plan_period.period_end, plan_period.amount, "plan".id, "plan".created_at, "plan".updated_at, "plan".start_date, "plan".end_date, "plan".cat_id, "plan".amount_expr, "plan".period
 FROM plan_period 
 JOIN plan ON plan_period.plan_id = plan.id
 WHERE period_start >= ? AND period_end < ?
@@ -371,7 +371,6 @@ func (q *Queries) GetPlanPeriods(ctx context.Context, arg GetPlanPeriodsParams) 
 	for rows.Next() {
 		var i GetPlanPeriodsRow
 		if err := rows.Scan(
-			&i.PlanPeriod.ID,
 			&i.PlanPeriod.CreatedAt,
 			&i.PlanPeriod.UpdatedAt,
 			&i.PlanPeriod.PlanID,
@@ -401,7 +400,7 @@ func (q *Queries) GetPlanPeriods(ctx context.Context, arg GetPlanPeriodsParams) 
 }
 
 const getPlanPeriodsByPlan = `-- name: GetPlanPeriodsByPlan :many
-SELECT id, created_at, updated_at, plan_id, period_start, period_end, amount 
+SELECT created_at, updated_at, plan_id, period_start, period_end, amount 
 FROM plan_period 
 WHERE plan_id = ? 
     AND period_start >= ? 
@@ -424,7 +423,6 @@ func (q *Queries) GetPlanPeriodsByPlan(ctx context.Context, arg GetPlanPeriodsBy
 	for rows.Next() {
 		var i PlanPeriod
 		if err := rows.Scan(
-			&i.ID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PlanID,
@@ -538,7 +536,7 @@ func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]Rule, err
 }
 
 const getTxByAccAndXid = `-- name: GetTxByAccAndXid :one
-SELECT id, created_at, updated_at, xid, date, orig_date, "desc", orig_desc, amount, orig_amount, acc_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
+SELECT id, created_at, updated_at, xid, date, "desc", amount, orig_date, orig_desc, orig_amount, acc_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
 `
 
 type GetTxByAccAndXidParams struct {
@@ -555,10 +553,10 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 		&i.UpdatedAt,
 		&i.Xid,
 		&i.Date,
-		&i.OrigDate,
 		&i.Desc,
-		&i.OrigDesc,
 		&i.Amount,
+		&i.OrigDate,
+		&i.OrigDesc,
 		&i.OrigAmount,
 		&i.AccID,
 		&i.Ord,
@@ -567,11 +565,9 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 }
 
 const getTxs = `-- name: GetTxs :many
-SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx.orig_date, tx."desc", tx.orig_desc, tx.amount, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active
+SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx."desc", tx.amount, tx.orig_date, tx.orig_desc, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active
 FROM tx
-JOIN acc ON tx.acc_id = acc.id
-LEFT JOIN tx_cat ON tx.id = tx_cat.tx_id
-LEFT JOIN cat ON tx_cat.cat_id = cat.id
+INNER JOIN acc ON tx.acc_id = acc.id
 WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?
@@ -585,7 +581,6 @@ type GetTxsParams struct {
 type GetTxsRow struct {
 	Tx  Tx
 	Acc Acc
-	Cat Cat
 }
 
 func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, error) {
@@ -603,10 +598,10 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Tx.UpdatedAt,
 			&i.Tx.Xid,
 			&i.Tx.Date,
-			&i.Tx.OrigDate,
 			&i.Tx.Desc,
-			&i.Tx.OrigDesc,
 			&i.Tx.Amount,
+			&i.Tx.OrigDate,
+			&i.Tx.OrigDesc,
 			&i.Tx.OrigAmount,
 			&i.Tx.AccID,
 			&i.Tx.Ord,
@@ -617,12 +612,6 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Acc.Xid,
 			&i.Acc.Kind,
 			&i.Acc.IsActive,
-			&i.Cat.ID,
-			&i.Cat.CreatedAt,
-			&i.Cat.UpdatedAt,
-			&i.Cat.Name,
-			&i.Cat.Kind,
-			&i.Cat.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -673,16 +662,26 @@ func (q *Queries) UpdatePlan(ctx context.Context, arg UpdatePlanParams) error {
 }
 
 const updatePlanPeriod = `-- name: UpdatePlanPeriod :exec
-UPDATE plan_period SET amount = ? WHERE id = ?
+UPDATE plan_period SET amount = ? 
+WHERE plan_id = ? 
+    AND period_start = ? 
+AND period_end = ?
 `
 
 type UpdatePlanPeriodParams struct {
-	Amount float64
-	ID     int64
+	Amount      float64
+	PlanID      int64
+	PeriodStart string
+	PeriodEnd   string
 }
 
 func (q *Queries) UpdatePlanPeriod(ctx context.Context, arg UpdatePlanPeriodParams) error {
-	_, err := q.db.ExecContext(ctx, updatePlanPeriod, arg.Amount, arg.ID)
+	_, err := q.db.ExecContext(ctx, updatePlanPeriod,
+		arg.Amount,
+		arg.PlanID,
+		arg.PeriodStart,
+		arg.PeriodEnd,
+	)
 	return err
 }
 

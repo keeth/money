@@ -48,14 +48,11 @@ func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
 
 	for _, tx := range resp.Transactions {
 		txRow, err := a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
-			Date:       tx.Date,
-			Amount:     tx.Amount,
-			Desc:       tx.Desc,
-			AccID:      accRow.Acc.ID,
-			Xid:        tx.ID,
-			OrigDate:   tx.Date,
-			OrigAmount: tx.Amount,
-			OrigDesc:   tx.Desc,
+			Date:   tx.Date,
+			Amount: tx.Amount,
+			Desc:   tx.Desc,
+			AccID:  accRow.Acc.ID,
+			Xid:    tx.ID,
 		})
 		if err != nil {
 			return ImportResult{}, err
