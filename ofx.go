@@ -95,6 +95,6 @@ func ParseOfxResponse(file *os.File) (ParsedResponse, error) {
 	} else {
 		return parsed, fmt.Errorf("no information found in file")
 	}
-	parsed.ID = strings.Join(xidParts, "-")
+	parsed.ID = strings.Join(xidParts, " ")
 	return parsed, nil
 }
