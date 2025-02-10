@@ -6,6 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func getIndex(c echo.Context) error {
+func GetIndex(c echo.Context) error {
 	return c.String(http.StatusOK, "Hello, World!")
 }

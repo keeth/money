@@ -1,15 +1,16 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"log/slog"
-	"net/http"
 	"os"
 
 	money "github.com/keeth/money"
 	data "github.com/keeth/money/data"
+	web "github.com/keeth/money/web"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var defaultLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -23,9 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	queries := data.New(db)
-
-	money.InitGlobalApp(context.Background(), queries)
+	money.InitGlobalApp(data.New(db))
 
 	portStr := os.Getenv("PORT")
 	if portStr == "" {
@@ -33,8 +32,8 @@ func main() {
 	}
 
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	e.Use(middleware.Static("static"))
+	e.GET("/", web.GetIndex)
+	e.GET("/tx", web.GetTxs)
 	e.Logger.Fatal(e.Start(":" + portStr))
 }

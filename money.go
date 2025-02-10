@@ -8,14 +8,12 @@ import (
 )
 
 type App struct {
-	ctx     context.Context
-	queries *data.Queries
+	Queries *data.Queries
 }
 
-func NewApp(ctx context.Context, q *data.Queries) *App {
+func NewApp(queries *data.Queries) *App {
 	return &App{
-		ctx:     ctx,
-		queries: q,
+		Queries: queries,
 	}
 }
 
@@ -29,14 +27,18 @@ type ImportResult struct {
 
 var app *App
 
-func InitGlobalApp(ctx context.Context, q *data.Queries) *App {
+func InitGlobalApp(q *data.Queries) *App {
 	if app == nil {
-		app = NewApp(ctx, q)
+		app = NewApp(q)
 	}
 	return app
 }
 
-func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
+func GetGlobalApp() *App {
+	return app
+}
+
+func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error) {
 	result := ImportResult{}
 
 	resp, err := ParseOfxResponse(file)
@@ -44,7 +46,7 @@ func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
 		return ImportResult{}, err
 	}
 
-	accRow, err := a.queries.GetOrCreateAcc(a.ctx, data.CreateAccParams{
+	accRow, err := a.Queries.GetOrCreateAcc(ctx, data.CreateAccParams{
 		Xid:  resp.ID,
 		Kind: resp.Kind,
 	}, maxAccounts)
@@ -56,7 +58,7 @@ func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
 	}
 
 	for _, tx := range resp.Transactions {
-		txRow, err := a.queries.CreateOrUpdateTx_(a.ctx, data.CreateOrUpdateTxParams{
+		txRow, err := a.Queries.CreateOrUpdateTx_(ctx, data.CreateOrUpdateTxParams{
 			Date:   tx.Date,
 			Amount: tx.Amount,
 			Desc:   tx.Desc,

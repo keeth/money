@@ -22,9 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	queries := data.New(db)
-
-	app := money.InitGlobalApp(context.Background(), queries)
+	app := money.InitGlobalApp(data.New(db))
 
 	if len(os.Args) < 2 {
 		slog.Error("no command specified")
@@ -46,7 +44,7 @@ func main() {
 		}
 		defer file.Close()
 
-		result, err := app.ImportOFX(file)
+		result, err := app.ImportOFX(context.Background(), file)
 		if err != nil {
 			slog.Error("import failed", "err", err)
 			os.Exit(1)
