@@ -14,8 +14,6 @@ import (
 
 var defaultLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-var app *money.App
-
 func main() {
 	slog.SetDefault(defaultLogger)
 

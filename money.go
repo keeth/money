@@ -29,8 +29,11 @@ type ImportResult struct {
 
 var app *App
 
-func InitGlobalApp(ctx context.Context, q *data.Queries) {
-	app = NewApp(ctx, q)
+func InitGlobalApp(ctx context.Context, q *data.Queries) *App {
+	if app == nil {
+		app = NewApp(ctx, q)
+	}
+	return app
 }
 
 func (a *App) ImportOFX(file *os.File) (ImportResult, error) {
