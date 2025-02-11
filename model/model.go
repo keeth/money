@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	sqlc "github.com/keeth/money/model/sqlc"
 )
 
 type CreateOrUpdateTxResult struct {
@@ -11,9 +13,9 @@ type CreateOrUpdateTxResult struct {
 	Created bool
 }
 
-func (q *Queries) CreateOrUpdateTx_(ctx context.Context, arg CreateOrUpdateTxParams) (CreateOrUpdateTxResult, error) {
+func CreateOrUpdateTx(ctx context.Context, queries *sqlc.Queries, arg sqlc.CreateOrUpdateTxParams) (CreateOrUpdateTxResult, error) {
 	arg.Ord = arg.Date + " " + arg.Xid
-	row, err := q.CreateOrUpdateTx(ctx, arg)
+	row, err := queries.CreateOrUpdateTx(ctx, arg)
 	result := CreateOrUpdateTxResult{}
 	if err != nil {
 		return result, err
@@ -24,13 +26,13 @@ func (q *Queries) CreateOrUpdateTx_(ctx context.Context, arg CreateOrUpdateTxPar
 }
 
 type GetOrCreateAccResult struct {
-	Acc     Acc
+	Acc     sqlc.Acc
 	Created bool
 }
 
-func (q *Queries) GetOrCreateAcc(ctx context.Context, arg CreateAccParams, maxAttempts int) (GetOrCreateAccResult, error) {
+func GetOrCreateAcc(ctx context.Context, queries *sqlc.Queries, arg sqlc.CreateAccParams, maxAttempts int) (GetOrCreateAccResult, error) {
 	result := GetOrCreateAccResult{}
-	acc, err := q.GetAccByXid(ctx, arg.Xid)
+	acc, err := queries.GetAccByXid(ctx, arg.Xid)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return result, err
@@ -42,14 +44,14 @@ func (q *Queries) GetOrCreateAcc(ctx context.Context, arg CreateAccParams, maxAt
 			} else {
 				name = fmt.Sprintf("%s%d", arg.Kind, i)
 			}
-			_, err = q.CreateAcc(ctx, CreateAccParams{
+			_, err = queries.CreateAcc(ctx, sqlc.CreateAccParams{
 				Xid:  arg.Xid,
 				Kind: arg.Kind,
 				Name: name,
 			})
 			if err == nil {
 				result.Created = true
-				acc, err = q.GetAccByXid(ctx, arg.Xid)
+				acc, err = queries.GetAccByXid(ctx, arg.Xid)
 				if err != nil {
 					return result, err
 				}

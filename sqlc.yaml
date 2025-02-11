@@ -6,4 +6,4 @@ sql:
     gen:
       go:
         package: "money"
-        out: "data"
+        out: "model/sqlc"

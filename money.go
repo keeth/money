@@ -4,14 +4,15 @@ import (
 	"context"
 	"os"
 
-	data "github.com/keeth/money/data"
+	model "github.com/keeth/money/model"
+	sqlc "github.com/keeth/money/model/sqlc"
 )
 
 type App struct {
-	Queries *data.Queries
+	Queries *sqlc.Queries
 }
 
-func NewApp(queries *data.Queries) *App {
+func NewApp(queries *sqlc.Queries) *App {
 	return &App{
 		Queries: queries,
 	}
@@ -27,7 +28,7 @@ type ImportResult struct {
 
 var app *App
 
-func InitGlobalApp(q *data.Queries) *App {
+func InitGlobalApp(q *sqlc.Queries) *App {
 	if app == nil {
 		app = NewApp(q)
 	}
@@ -46,7 +47,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 		return ImportResult{}, err
 	}
 
-	accRow, err := a.Queries.GetOrCreateAcc(ctx, data.CreateAccParams{
+	accRow, err := model.GetOrCreateAcc(ctx, a.Queries, sqlc.CreateAccParams{
 		Xid:  resp.ID,
 		Kind: resp.Kind,
 	}, maxAccounts)
@@ -58,7 +59,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 	}
 
 	for _, tx := range resp.Transactions {
-		txRow, err := a.Queries.CreateOrUpdateTx_(ctx, data.CreateOrUpdateTxParams{
+		txRow, err := model.CreateOrUpdateTx(ctx, a.Queries, sqlc.CreateOrUpdateTxParams{
 			Date:   tx.Date,
 			Amount: tx.Amount,
 			Desc:   tx.Desc,

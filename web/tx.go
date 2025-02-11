@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/keeth/money"
-	data "github.com/keeth/money/data"
+	sqlc "github.com/keeth/money/model/sqlc"
 	"github.com/labstack/echo/v4"
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
@@ -13,9 +13,9 @@ import (
 
 func GetTxs(c echo.Context) error {
 	app := money.GetGlobalApp()
-	txs, err := app.Queries.GetTxs(c.Request().Context(), data.GetTxsParams{
+	txs, err := app.Queries.GetTxs(c.Request().Context(), sqlc.GetTxsParams{
 		Ord:   "9999-99-99",
-		Limit: 10,
+		Limit: 100,
 	})
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
@@ -33,7 +33,7 @@ func GetTxs(c echo.Context) error {
 				),
 			),
 			TBody(
-				Map(txs, func(txRow data.GetTxsRow) Node {
+				Map(txs, func(txRow sqlc.GetTxsRow) Node {
 					return Tr(
 						Td(Text(txRow.Tx.Date)),
 						Td(Text(txRow.Tx.Desc)),

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	data "github.com/keeth/money/data"
+	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -29,7 +29,7 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	ctx := context.Background()
 	gm := golangmigrator.New("db/migrations")
 	db := sqlitestdb.New(t, sqlitestdb.Config{Driver: "sqlite3"}, gm)
-	queries := data.New(db)
+	queries := sqlc.New(db)
 	app := NewApp(queries)
 	ofxFile, err := os.Open("testdata/ofx/bank1.qfx")
 	defer ofxFile.Close()
@@ -41,7 +41,7 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	assert.Equal(t, "bank", acc[0].Name)
 	assert.Equal(t, "000000001 001 bankAccount1234567890", acc[0].Xid)
 	assert.Equal(t, "bank", acc[0].Kind)
-	txs, err := queries.GetTxs(ctx, data.GetTxsParams{
+	txs, err := queries.GetTxs(ctx, sqlc.GetTxsParams{
 		Ord:   "9999-99-99",
 		Limit: 10,
 	})

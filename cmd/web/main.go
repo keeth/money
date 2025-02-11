@@ -6,7 +6,7 @@ import (
 	"os"
 
 	money "github.com/keeth/money"
-	data "github.com/keeth/money/data"
+	sqlc "github.com/keeth/money/model/sqlc"
 	web "github.com/keeth/money/web"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -24,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	money.InitGlobalApp(data.New(db))
+	money.InitGlobalApp(sqlc.New(db))
 
 	portStr := os.Getenv("PORT")
 	if portStr == "" {
