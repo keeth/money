@@ -565,9 +565,10 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 }
 
 const getTxs = `-- name: GetTxs :many
-SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx."desc", tx.amount, tx.orig_date, tx.orig_desc, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active
+SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx."desc", tx.amount, tx.orig_date, tx.orig_desc, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active
 FROM tx
 INNER JOIN acc ON tx.acc_id = acc.id
+LEFT JOIN cat ON tx.cat_id = cat.id
 WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?
@@ -581,6 +582,7 @@ type GetTxsParams struct {
 type GetTxsRow struct {
 	Tx  Tx
 	Acc Acc
+	Cat Cat
 }
 
 func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, error) {
@@ -612,6 +614,12 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Acc.Xid,
 			&i.Acc.Kind,
 			&i.Acc.IsActive,
+			&i.Cat.ID,
+			&i.Cat.CreatedAt,
+			&i.Cat.UpdatedAt,
+			&i.Cat.Name,
+			&i.Cat.Kind,
+			&i.Cat.IsActive,
 		); err != nil {
 			return nil, err
 		}

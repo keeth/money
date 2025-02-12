@@ -22,9 +22,10 @@ RETURNING id;
 SELECT * FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1;
 
 -- name: GetTxs :many
-SELECT sqlc.embed(tx), sqlc.embed(acc)
+SELECT sqlc.embed(tx), sqlc.embed(acc), sqlc.embed(cat)
 FROM tx
 INNER JOIN acc ON tx.acc_id = acc.id
+LEFT JOIN cat ON tx.cat_id = cat.id
 WHERE ord < ?
 ORDER BY ord DESC
 LIMIT ?;

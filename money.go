@@ -48,7 +48,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 		return ImportResult{}, err
 	}
 
-	accRow, err := model.GetOrCreateAcc(ctx, a.Model, sqlc.CreateAccParams{
+	accRow, err := a.Model.GetOrCreateAcc(ctx, sqlc.CreateAccParams{
 		Xid:  resp.ID,
 		Kind: resp.Kind,
 	}, maxAccounts)
@@ -60,7 +60,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 	}
 
 	for _, tx := range resp.Transactions {
-		txRow, err := model.CreateOrUpdateTx(ctx, a.Model, sqlc.CreateOrUpdateTxParams{
+		txRow, err := a.Model.CreateOrUpdateTx(ctx, sqlc.CreateOrUpdateTxParams{
 			Date:   tx.Date,
 			Amount: tx.Amount,
 			Desc:   tx.Desc,
