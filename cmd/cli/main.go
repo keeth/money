@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/keeth/money"
-	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -22,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := money.InitGlobalApp(sqlc.New(db))
+	app := money.InitGlobalApp(db)
 
 	if len(os.Args) < 2 {
 		slog.Error("no command specified")

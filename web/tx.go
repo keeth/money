@@ -13,7 +13,7 @@ import (
 
 func GetTxs(c echo.Context) error {
 	app := money.GetGlobalApp()
-	txs, err := app.Queries.GetTxs(c.Request().Context(), sqlc.GetTxsParams{
+	txs, err := app.Model.Queries.GetTxs(c.Request().Context(), sqlc.GetTxsParams{
 		Ord:   "9999-99-99",
 		Limit: 100,
 	})

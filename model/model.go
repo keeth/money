@@ -13,9 +13,9 @@ type CreateOrUpdateTxResult struct {
 	Created bool
 }
 
-func CreateOrUpdateTx(ctx context.Context, queries *sqlc.Queries, arg sqlc.CreateOrUpdateTxParams) (CreateOrUpdateTxResult, error) {
+func CreateOrUpdateTx(ctx context.Context, mc *ModelContext, arg sqlc.CreateOrUpdateTxParams) (CreateOrUpdateTxResult, error) {
 	arg.Ord = arg.Date + " " + arg.Xid
-	row, err := queries.CreateOrUpdateTx(ctx, arg)
+	row, err := mc.Queries.CreateOrUpdateTx(ctx, arg)
 	result := CreateOrUpdateTxResult{}
 	if err != nil {
 		return result, err
@@ -30,9 +30,9 @@ type GetOrCreateAccResult struct {
 	Created bool
 }
 
-func GetOrCreateAcc(ctx context.Context, queries *sqlc.Queries, arg sqlc.CreateAccParams, maxAttempts int) (GetOrCreateAccResult, error) {
+func GetOrCreateAcc(ctx context.Context, mc *ModelContext, arg sqlc.CreateAccParams, maxAttempts int) (GetOrCreateAccResult, error) {
 	result := GetOrCreateAccResult{}
-	acc, err := queries.GetAccByXid(ctx, arg.Xid)
+	acc, err := mc.Queries.GetAccByXid(ctx, arg.Xid)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return result, err
@@ -44,14 +44,14 @@ func GetOrCreateAcc(ctx context.Context, queries *sqlc.Queries, arg sqlc.CreateA
 			} else {
 				name = fmt.Sprintf("%s%d", arg.Kind, i)
 			}
-			_, err = queries.CreateAcc(ctx, sqlc.CreateAccParams{
+			_, err = mc.Queries.CreateAcc(ctx, sqlc.CreateAccParams{
 				Xid:  arg.Xid,
 				Kind: arg.Kind,
 				Name: name,
 			})
 			if err == nil {
 				result.Created = true
-				acc, err = queries.GetAccByXid(ctx, arg.Xid)
+				acc, err = mc.Queries.GetAccByXid(ctx, arg.Xid)
 				if err != nil {
 					return result, err
 				}

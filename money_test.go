@@ -29,19 +29,18 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	ctx := context.Background()
 	gm := golangmigrator.New("db/migrations")
 	db := sqlitestdb.New(t, sqlitestdb.Config{Driver: "sqlite3"}, gm)
-	queries := sqlc.New(db)
-	app := NewApp(queries)
+	app := InitGlobalApp(db)
 	ofxFile, err := os.Open("testdata/ofx/bank1.qfx")
 	defer ofxFile.Close()
 	assert.NoError(t, err)
 	app.ImportOFX(ctx, ofxFile)
-	acc, err := queries.GetAccs(ctx)
+	acc, err := app.Model.Queries.GetAccs(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(acc))
 	assert.Equal(t, "bank", acc[0].Name)
 	assert.Equal(t, "000000001 001 bankAccount1234567890", acc[0].Xid)
 	assert.Equal(t, "bank", acc[0].Kind)
-	txs, err := queries.GetTxs(ctx, sqlc.GetTxsParams{
+	txs, err := app.Model.Queries.GetTxs(ctx, sqlc.GetTxsParams{
 		Ord:   "9999-99-99",
 		Limit: 10,
 	})
