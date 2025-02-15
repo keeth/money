@@ -20,8 +20,10 @@ CREATE TABLE tx (
     orig_desc TEXT,
     orig_amount REAL,
     acc_id INTEGER NOT NULL,
+    cat_id INTEGER, 
     ord TEXT NOT NULL,
     FOREIGN KEY (acc_id) REFERENCES acc(id) ON DELETE CASCADE,
+    FOREIGN KEY (cat_id) REFERENCES cat(id) ON DELETE SET NULL,
     UNIQUE (acc_id, xid)
 );
 
@@ -34,14 +36,6 @@ CREATE TABLE cat (
     name TEXT NOT NULL UNIQUE,
     kind TEXT NOT NULL CHECK (kind IN ('income', 'expense', 'transfer')),
     is_active INTEGER NOT NULL CHECK (is_active IN (0, 1))
-);
-
-CREATE TABLE tx_cat (
-    tx_id INTEGER NOT NULL,
-    cat_id INTEGER NOT NULL,
-    FOREIGN KEY (tx_id) REFERENCES tx(id) ON DELETE CASCADE,
-    FOREIGN KEY (cat_id) REFERENCES cat(id) ON DELETE CASCADE,
-    PRIMARY KEY (tx_id, cat_id)
 );
 
 CREATE TABLE plan (
