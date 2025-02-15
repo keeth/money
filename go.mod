@@ -34,4 +34,5 @@ require (
 	golang.org/x/time v0.8.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	maragu.dev/gomponents v1.0.0 // indirect
+	maragu.dev/gomponents-htmx v0.6.1 // indirect
 )

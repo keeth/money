@@ -19,6 +19,7 @@ func page(props PageProps, children ...Node) Node {
 		Language:    "en",
 		Head: []Node{
 			Link(Rel("stylesheet"), Href("/css/cu.css")),
+			Script(Src("https://unpkg.com/htmx.org")),
 		},
 		Body: []Node{
 			Group(children),
