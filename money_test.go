@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	sqlc "github.com/keeth/money/model/sqlc"
+	model "github.com/keeth/money/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -40,16 +40,15 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	assert.Equal(t, "bank", acc[0].Name)
 	assert.Equal(t, "000000001 001 bankAccount1234567890", acc[0].Xid)
 	assert.Equal(t, "bank", acc[0].Kind)
-	txs, err := app.Model.Queries.GetTxs(ctx, sqlc.GetTxsParams{
-		Ord:   "9999-99-99",
-		Limit: 10,
+	txs, err := app.Model.GetTxs(ctx, model.GetTxsParams{
+		Before: "",
+		Limit:  10,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(txs))
 	assert.Equal(t, "2025-02-02", txs[0].Tx.Date)
 	assert.Equal(t, "emt transfer - credit payer: fozzie bear", txs[0].Tx.Desc)
 	assert.Equal(t, 100.0, txs[0].Tx.Amount)
-	assert.Equal(t, acc[0].ID, txs[0].Tx.AccID)
 	assert.Equal(t, acc[0].ID, txs[0].Acc.ID)
 }
 

@@ -33,6 +33,6 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Static("static"))
 	e.GET("/", web.GetIndex)
-	e.GET("/tx", web.GetTxs)
+	e.GET("/tx", web.GetTxsEndpoint)
 	e.Logger.Fatal(e.Start(":" + portStr))
 }

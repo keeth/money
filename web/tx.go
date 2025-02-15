@@ -1,10 +1,12 @@
 package money
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/keeth/money"
 	model "github.com/keeth/money/model"
@@ -15,9 +17,9 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-var limit = int64(100)
+var maxLimit = int64(100)
 
-func txRowNodes(txs []sqlc.GetTxsRow) Node {
+func GetTxRows(txs []sqlc.GetTxsRow) Node {
 	return Group{Map(txs, func(txRow sqlc.GetTxsRow) Node {
 		return Tr(
 			If(txRow.Tx.ID == txs[len(txs)-1].Tx.ID,
@@ -34,20 +36,16 @@ func txRowNodes(txs []sqlc.GetTxsRow) Node {
 	})}
 }
 
-func GetTxs(c echo.Context) error {
+func GetTxs(ctx context.Context, params model.GetTxsParams) (error, Node) {
 	app := money.GetGlobalApp()
-	before := c.QueryParam("before")
-	txs, err := app.Model.GetTxs(c.Request().Context(), model.GetTxsParams{
-		Before: before,
-		Limit:  limit,
-	})
+	txs, err := app.Model.GetTxs(ctx, params)
 	if err != nil {
 		slog.Error("failed to get txs", "error", err)
-		return c.String(http.StatusInternalServerError, err.Error())
+		return err, nil
 	}
-	rowNodes := txRowNodes(txs)
-	if before == "" {
-		page(PageProps{
+	rowNodes := GetTxRows(txs)
+	if params.Before == "" {
+		return nil, page(PageProps{
 			Title:       "Transactions",
 			Description: "Transactions",
 		},
@@ -63,25 +61,30 @@ func GetTxs(c echo.Context) error {
 					rowNodes,
 				),
 			),
-		).Render(c.Response().Writer)
-	} else {
-		rowNodes.Render(c.Response().Writer)
+		)
 	}
-
-	return nil
+	return nil, rowNodes
 }
 
-func GetTxsNext(c echo.Context) error {
-	app := money.GetGlobalApp()
+func GetTxsEndpoint(c echo.Context) error {
 	before := c.QueryParam("before")
-	txs, err := app.Model.GetTxs(c.Request().Context(), model.GetTxsParams{
+	limitStr := c.QueryParam("limit")
+	limit := maxLimit
+	if limitStr != "" {
+		limit, err := strconv.ParseInt(limitStr, 10, 64)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid limit")
+		}
+		if limit < 1 || limit > maxLimit {
+			limit = maxLimit
+		}
+	}
+	err, txs := GetTxs(c.Request().Context(), model.GetTxsParams{
 		Before: before,
 		Limit:  limit,
 	})
 	if err != nil {
-		slog.Error("failed to get tx", "error", err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	txRowNodes(txs).Render(c.Response().Writer)
-	return nil
+	return txs.Render(c.Response().Writer)
 }
