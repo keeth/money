@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/keeth/money"
+	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -53,6 +54,24 @@ func main() {
 			"transactions_created", result.TxCreated,
 			"transactions_updated", result.TxUpdated,
 			"accounts_created", result.AccCreated)
+	} else if cmd == "create-cat" {
+		if len(os.Args) < 4 {
+			slog.Error("usage: create-cat <name> <kind>")
+			os.Exit(1)
+		}
+
+		catName := os.Args[2]
+		catKind := os.Args[3]
+
+		id, err := app.Model.Queries.CreateCat(context.Background(), sqlc.CreateCatParams{
+			Name: catName,
+			Kind: catKind,
+		})
+		if err != nil {
+			slog.Error("failed to create category", "err", err)
+			os.Exit(1)
+		}
+		slog.Info("category created", "name", catName, "kind", catKind, "id", id)
 	} else {
 		slog.Error("unknown command", "cmd", cmd)
 		os.Exit(1)
