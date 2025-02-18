@@ -38,8 +38,20 @@ func (q *Queries) CreateAcc(ctx context.Context, arg CreateAccParams) (int64, er
 	return id, err
 }
 
-const createCat = `-- name: CreateCat :exec
-INSERT INTO cat (name, kind, is_active) VALUES (?, ?, 1)
+const createCat = `-- name: CreateCat :one
+INSERT INTO cat (
+    name, 
+    kind, 
+    is_active, 
+    created_at, 
+    updated_at
+) VALUES (
+    ?,  
+    ?, 
+    1,
+    current_timestamp,
+    current_timestamp
+) RETURNING id
 `
 
 type CreateCatParams struct {
@@ -47,9 +59,11 @@ type CreateCatParams struct {
 	Kind string
 }
 
-func (q *Queries) CreateCat(ctx context.Context, arg CreateCatParams) error {
-	_, err := q.db.ExecContext(ctx, createCat, arg.Name, arg.Kind)
-	return err
+func (q *Queries) CreateCat(ctx context.Context, arg CreateCatParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createCat, arg.Name, arg.Kind)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createOrUpdateTx = `-- name: CreateOrUpdateTx :one
@@ -536,7 +550,7 @@ func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]Rule, err
 }
 
 const getTxByAccAndXid = `-- name: GetTxByAccAndXid :one
-SELECT id, created_at, updated_at, xid, date, "desc", amount, orig_date, orig_desc, orig_amount, acc_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
+SELECT id, created_at, updated_at, xid, date, "desc", amount, orig_date, orig_desc, orig_amount, acc_id, cat_id, ord FROM tx WHERE acc_id = ? AND xid = ? LIMIT 1
 `
 
 type GetTxByAccAndXidParams struct {
@@ -559,18 +573,19 @@ func (q *Queries) GetTxByAccAndXid(ctx context.Context, arg GetTxByAccAndXidPara
 		&i.OrigDesc,
 		&i.OrigAmount,
 		&i.AccID,
+		&i.CatID,
 		&i.Ord,
 	)
 	return i, err
 }
 
 const getTxs = `-- name: GetTxs :many
-SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx."desc", tx.amount, tx.orig_date, tx.orig_desc, tx.orig_amount, tx.acc_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active
+SELECT tx.id, tx.created_at, tx.updated_at, tx.xid, tx.date, tx."desc", tx.amount, tx.orig_date, tx.orig_desc, tx.orig_amount, tx.acc_id, tx.cat_id, tx.ord, acc.id, acc.created_at, acc.updated_at, acc.name, acc.xid, acc.kind, acc.is_active, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active
 FROM tx
 INNER JOIN acc ON tx.acc_id = acc.id
 LEFT JOIN cat ON tx.cat_id = cat.id
-WHERE ord < ?
-ORDER BY ord DESC
+WHERE tx.ord < ?
+ORDER BY tx.ord DESC
 LIMIT ?
 `
 
@@ -606,6 +621,7 @@ func (q *Queries) GetTxs(ctx context.Context, arg GetTxsParams) ([]GetTxsRow, er
 			&i.Tx.OrigDesc,
 			&i.Tx.OrigAmount,
 			&i.Tx.AccID,
+			&i.Tx.CatID,
 			&i.Tx.Ord,
 			&i.Acc.ID,
 			&i.Acc.CreatedAt,

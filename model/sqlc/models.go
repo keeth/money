@@ -73,10 +73,6 @@ type Tx struct {
 	OrigDesc   sql.NullString
 	OrigAmount sql.NullFloat64
 	AccID      int64
+	CatID      sql.NullInt64
 	Ord        string
-}
-
-type TxCat struct {
-	TxID  int64
-	CatID int64
 }

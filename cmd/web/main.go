@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	money.InitGlobalApp(db)
+	app := money.NewApp(db)
 
 	portStr := os.Getenv("PORT")
 	if portStr == "" {
@@ -32,7 +32,9 @@ func main() {
 
 	e := echo.New()
 	e.Use(middleware.Static("static"))
+	e.Use(web.WithApp(app))
 	e.GET("/", web.GetIndex)
 	e.GET("/tx", web.GetTxsEndpoint)
+	e.GET("/cat", web.GetCatsEndpoint)
 	e.Logger.Fatal(e.Start(":" + portStr))
 }

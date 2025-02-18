@@ -26,8 +26,8 @@ SELECT sqlc.embed(tx), sqlc.embed(acc), sqlc.embed(cat)
 FROM tx
 INNER JOIN acc ON tx.acc_id = acc.id
 LEFT JOIN cat ON tx.cat_id = cat.id
-WHERE ord < ?
-ORDER BY ord DESC
+WHERE tx.ord < ?
+ORDER BY tx.ord DESC
 LIMIT ?;
 
 -- name: UpdateTx :exec
@@ -63,8 +63,20 @@ RETURNING id, created_at, updated_at;
 -- name: GetCats :many
 SELECT * FROM cat WHERE is_active = 1 ORDER BY name;
 
--- name: CreateCat :exec
-INSERT INTO cat (name, kind, is_active) VALUES (?, ?, 1);
+-- name: CreateCat :one
+INSERT INTO cat (
+    name, 
+    kind, 
+    is_active, 
+    created_at, 
+    updated_at
+) VALUES (
+    ?,  
+    ?, 
+    1,
+    current_timestamp,
+    current_timestamp
+) RETURNING id;
 
 -- name: UpdateCat :exec
 UPDATE cat SET name = ? WHERE id = ?;

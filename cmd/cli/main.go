@@ -21,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := money.InitGlobalApp(db)
+	app := money.NewApp(db)
 
 	if len(os.Args) < 2 {
 		slog.Error("no command specified")

@@ -36,8 +36,7 @@ func GetTxRows(txs []sqlc.GetTxsRow) Node {
 	})}
 }
 
-func GetTxs(ctx context.Context, params model.GetTxsParams) (error, Node) {
-	app := money.GetGlobalApp()
+func GetTxs(ctx context.Context, app *money.App, params model.GetTxsParams) (error, Node) {
 	txs, err := app.Model.GetTxs(ctx, params)
 	if err != nil {
 		slog.Error("failed to get txs", "error", err)
@@ -67,24 +66,25 @@ func GetTxs(ctx context.Context, params model.GetTxsParams) (error, Node) {
 }
 
 func GetTxsEndpoint(c echo.Context) error {
-	before := c.QueryParam("before")
-	limitStr := c.QueryParam("limit")
+	cc := c.(*Context)
+	before := cc.QueryParam("before")
+	limitStr := cc.QueryParam("limit")
 	limit := maxLimit
 	if limitStr != "" {
 		limit, err := strconv.ParseInt(limitStr, 10, 64)
 		if err != nil {
-			return c.String(http.StatusBadRequest, "invalid limit")
+			return cc.String(http.StatusBadRequest, "invalid limit")
 		}
 		if limit < 1 || limit > maxLimit {
 			limit = maxLimit
 		}
 	}
-	err, txs := GetTxs(c.Request().Context(), model.GetTxsParams{
+	err, txs := GetTxs(cc.Request().Context(), cc.App, model.GetTxsParams{
 		Before: before,
 		Limit:  limit,
 	})
 	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+		return cc.String(http.StatusInternalServerError, err.Error())
 	}
-	return txs.Render(c.Response().Writer)
+	return txs.Render(cc.Response().Writer)
 }

@@ -167,3 +167,59 @@ func (mc *ModelContext) GetTxs(ctx context.Context, arg GetTxsParams) ([]sqlc.Ge
 	}
 	return items, nil
 }
+
+type GetCatsParams struct {
+	After string
+	Limit int64
+}
+
+type Cat = sqlc.Cat
+
+func (mc *ModelContext) GetCats(ctx context.Context, arg GetCatsParams) ([]Cat, error) {
+	if arg.Limit == 0 {
+		arg.Limit = 100
+	}
+	stmt := sq.Select().
+		Column("cat.id").
+		Column("cat.created_at").
+		Column("cat.updated_at").
+		Column("cat.name").
+		Column("cat.kind").
+		Column("cat.is_active").
+		From("cat").
+		OrderBy("cat.name").
+		Where(sq.Gt{"cat.name": arg.After}).
+		Limit(uint64(arg.Limit))
+	sql, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, err
+	}
+	// remainder of this function is copied from sqlc/query.sql.go
+	rows, err := mc.DB.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Cat
+	for rows.Next() {
+		var i Cat
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Kind,
+			&i.IsActive,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

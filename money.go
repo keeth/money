@@ -27,19 +27,6 @@ type ImportResult struct {
 	AccCreated int
 }
 
-var app *App
-
-func InitGlobalApp(db *sql.DB) *App {
-	if app == nil {
-		app = NewApp(db)
-	}
-	return app
-}
-
-func GetGlobalApp() *App {
-	return app
-}
-
 func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error) {
 	result := ImportResult{}
 

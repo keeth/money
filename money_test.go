@@ -29,7 +29,7 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	ctx := context.Background()
 	gm := golangmigrator.New("db/migrations")
 	db := sqlitestdb.New(t, sqlitestdb.Config{Driver: "sqlite3"}, gm)
-	app := InitGlobalApp(db)
+	app := NewApp(db)
 	ofxFile, err := os.Open("testdata/ofx/bank1.qfx")
 	defer ofxFile.Close()
 	assert.NoError(t, err)
