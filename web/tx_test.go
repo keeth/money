@@ -38,8 +38,8 @@ func (suite *WebTxTestSuite) SetupTest() {
 func (t *WebTxTestSuite) TestGetTxs() {
 	ctx := context.Background()
 	err, txs := GetTxs(ctx, t.app, model.GetTxsParams{
-		Before: "",
-		Limit:  2,
+		After: "",
+		Limit: 2,
 	})
 	t.NoError(err)
 	var b strings.Builder
@@ -51,13 +51,13 @@ func (t *WebTxTestSuite) TestGetTxs() {
 	rows := doc.Find("tr")
 	t.Equal(3, rows.Length())
 	lastRow := rows.Last()
-	t.Equal("/tx?before=2025-02-02+4447", lastRow.AttrOr("hx-get", ""))
+	t.Equal("/tx?after=2025-02-02+4447", lastRow.AttrOr("hx-get", ""))
 	t.Equal("afterend", lastRow.AttrOr("hx-swap", ""))
 	t.Equal("revealed", lastRow.AttrOr("hx-trigger", ""))
 
 	err, txs = GetTxs(ctx, t.app, model.GetTxsParams{
-		Before: "2025-02-02 4447",
-		Limit:  2,
+		After: "2025-02-02 4447",
+		Limit: 2,
 	})
 	t.NoError(err)
 	var b2 strings.Builder
@@ -69,7 +69,7 @@ func (t *WebTxTestSuite) TestGetTxs() {
 	rows2 := doc2.Find("tr")
 	t.Equal(1, rows2.Length())
 	lastRow2 := rows2.Last()
-	t.Equal("/tx?before=2025-02-02+4446", lastRow2.AttrOr("hx-get", ""))
+	t.Equal("/tx?after=2025-02-02+4446", lastRow2.AttrOr("hx-get", ""))
 }
 
 func TestWebTxTestSuite(t *testing.T) {

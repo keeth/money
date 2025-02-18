@@ -41,8 +41,8 @@ func (suite *ImportTestSuite) TestImportOFX() {
 	assert.Equal(t, "000000001 001 bankAccount1234567890", acc[0].Xid)
 	assert.Equal(t, "bank", acc[0].Kind)
 	txs, err := app.Model.GetTxs(ctx, model.GetTxsParams{
-		Before: "",
-		Limit:  10,
+		After: "",
+		Limit: 10,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(txs))

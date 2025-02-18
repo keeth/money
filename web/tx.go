@@ -24,7 +24,7 @@ func GetTxRows(txs []sqlc.GetTxsRow) Node {
 		return Tr(
 			If(txRow.Tx.ID == txs[len(txs)-1].Tx.ID,
 				Group{
-					hx.Get(fmt.Sprintf("/tx?before=%s", url.QueryEscape(txRow.Tx.Ord))),
+					hx.Get(fmt.Sprintf("/tx?after=%s", url.QueryEscape(txRow.Tx.Ord))),
 					hx.Trigger("revealed"),
 					hx.Swap("afterend"),
 				},
@@ -43,7 +43,7 @@ func GetTxs(ctx context.Context, app *money.App, params model.GetTxsParams) (err
 		return err, nil
 	}
 	rowNodes := GetTxRows(txs)
-	if params.Before == "" {
+	if params.After == "" {
 		return nil, page(PageProps{
 			Title:       "Transactions",
 			Description: "Transactions",
@@ -67,7 +67,7 @@ func GetTxs(ctx context.Context, app *money.App, params model.GetTxsParams) (err
 
 func GetTxsEndpoint(c echo.Context) error {
 	cc := c.(*Context)
-	before := cc.QueryParam("before")
+	after := cc.QueryParam("after")
 	limitStr := cc.QueryParam("limit")
 	limit := maxLimit
 	if limitStr != "" {
@@ -80,8 +80,8 @@ func GetTxsEndpoint(c echo.Context) error {
 		}
 	}
 	err, txs := GetTxs(cc.Request().Context(), cc.App, model.GetTxsParams{
-		Before: before,
-		Limit:  limit,
+		After: after,
+		Limit: limit,
 	})
 	if err != nil {
 		return cc.String(http.StatusInternalServerError, err.Error())

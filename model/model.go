@@ -74,16 +74,16 @@ func (mc *ModelContext) GetOrCreateAcc(ctx context.Context, arg sqlc.CreateAccPa
 }
 
 type GetTxsParams struct {
-	Before string
-	Limit  int64
+	After string
+	Limit int64
 }
 
 func (mc *ModelContext) GetTxs(ctx context.Context, arg GetTxsParams) ([]sqlc.GetTxsRow, error) {
 	if arg.Limit == 0 {
 		arg.Limit = 100
 	}
-	if arg.Before == "" {
-		arg.Before = "9999-12-31"
+	if arg.After == "" {
+		arg.After = "9999-12-31"
 	}
 	stmt := sq.Select().
 		Column("tx.id").
@@ -113,7 +113,7 @@ func (mc *ModelContext) GetTxs(ctx context.Context, arg GetTxsParams) ([]sqlc.Ge
 		From("tx").
 		Join("acc ON tx.acc_id = acc.id").
 		LeftJoin("cat ON tx.cat_id = cat.id").
-		Where(sq.Lt{"tx.ord": arg.Before}).
+		Where(sq.Lt{"tx.ord": arg.After}).
 		OrderBy("tx.ord DESC").
 		Limit(uint64(arg.Limit))
 	sql, args, err := stmt.ToSql()
