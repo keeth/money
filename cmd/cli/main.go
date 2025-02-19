@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/keeth/money"
 	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/cobra"
 )
 
 var defaultLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var app *money.App
 
 func main() {
 	slog.SetDefault(defaultLogger)
@@ -22,58 +25,106 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := money.NewApp(db)
+	app = money.NewApp(db)
 
-	if len(os.Args) < 2 {
-		slog.Error("no command specified")
-		os.Exit(1)
+	var rootCmd = &cobra.Command{
+		Use:   "money",
+		Short: "Money management CLI",
 	}
 
-	cmd := os.Args[1]
-	if cmd == "import" {
-		if len(os.Args) < 3 {
-			slog.Error("import command requires a file path")
-			os.Exit(1)
-		}
+	var importCmd = &cobra.Command{
+		Use:   "import [file]",
+		Short: "Import transactions from OFX file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			file, err := os.Open(args[0])
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 
-		filePath := os.Args[2]
-		file, err := os.Open(filePath)
-		if err != nil {
-			slog.Error("failed to open import file", "err", err)
-			os.Exit(1)
-		}
-		defer file.Close()
+			result, err := app.ImportOFX(context.Background(), file)
+			if err != nil {
+				return err
+			}
 
-		result, err := app.ImportOFX(context.Background(), file)
-		if err != nil {
-			slog.Error("import failed", "err", err)
-			os.Exit(1)
-		}
+			slog.Info("import completed",
+				"transactions_created", result.TxCreated,
+				"transactions_updated", result.TxUpdated,
+				"accounts_created", result.AccCreated)
+			return nil
+		},
+	}
 
-		slog.Info("import completed",
-			"transactions_created", result.TxCreated,
-			"transactions_updated", result.TxUpdated,
-			"accounts_created", result.AccCreated)
-	} else if cmd == "create-cat" {
-		if len(os.Args) < 4 {
-			slog.Error("usage: create-cat <name> <kind>")
-			os.Exit(1)
-		}
+	var createCatCmd = &cobra.Command{
+		Use:   "create-cat [name] [kind]",
+		Short: "Create a new category",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := app.Model.Queries.CreateCat(context.Background(), sqlc.CreateCatParams{
+				Name: args[0],
+				Kind: args[1],
+			})
+			if err != nil {
+				return err
+			}
+			slog.Info("category created", "name", args[0], "kind", args[1], "id", id)
+			return nil
+		},
+	}
 
-		catName := os.Args[2]
-		catKind := os.Args[3]
+	var createRuleCmd = &cobra.Command{
+		Use:   "create-rule [test]",
+		Short: "Create a new rule",
+		Long:  "Create a new rule with a test expression and optional category, amount, description, and date patterns. At least one optional parameter must be specified.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			category, _ := cmd.Flags().GetString("cat")
+			amount, _ := cmd.Flags().GetString("amount")
+			desc, _ := cmd.Flags().GetString("desc")
+			date, _ := cmd.Flags().GetString("date")
 
-		id, err := app.Model.Queries.CreateCat(context.Background(), sqlc.CreateCatParams{
-			Name: catName,
-			Kind: catKind,
-		})
-		if err != nil {
-			slog.Error("failed to create category", "err", err)
-			os.Exit(1)
-		}
-		slog.Info("category created", "name", catName, "kind", catKind, "id", id)
-	} else {
-		slog.Error("unknown command", "cmd", cmd)
+			// Verify at least one optional parameter is provided
+			if category == "" && amount == "" && desc == "" && date == "" {
+				return fmt.Errorf("at least one of --cat, --amount, --desc, or --date must be specified")
+			}
+
+			var catID sql.NullInt64
+			if category != "" {
+				cat, err := app.Model.Queries.GetCatByName(context.Background(), category)
+				if err != nil {
+					return err
+				}
+				if cat.ID == 0 {
+					return fmt.Errorf("category not found: %s", category)
+				}
+				catID = sql.NullInt64{Int64: cat.ID, Valid: true}
+			}
+
+			id, err := app.Model.CreateRule(context.Background(), sqlc.CreateRuleParams{
+				TestExpr:   args[0],
+				CatID:      catID,
+				AmountExpr: sql.NullString{String: amount, Valid: amount != ""},
+				DescExpr:   sql.NullString{String: desc, Valid: desc != ""},
+				DateExpr:   sql.NullString{String: date, Valid: date != ""},
+			})
+			if err != nil {
+				return err
+			}
+			slog.Info("rule created", "id", id)
+			return nil
+		},
+	}
+
+	createRuleCmd.Flags().String("cat", "", "Category ID to assign")
+	createRuleCmd.Flags().String("amount", "", "Amount pattern")
+	createRuleCmd.Flags().String("desc", "", "Description pattern")
+	createRuleCmd.Flags().String("date", "", "Date pattern")
+
+	rootCmd.AddCommand(importCmd, createCatCmd, createRuleCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		slog.Error("command failed", "err", err)
 		os.Exit(1)
 	}
 }

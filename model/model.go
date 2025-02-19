@@ -223,3 +223,99 @@ func (mc *ModelContext) GetCats(ctx context.Context, arg GetCatsParams) ([]Cat, 
 	}
 	return items, nil
 }
+
+type Rule = sqlc.Rule
+type GetRulesRow sqlc.GetRulesRow
+
+type GetRulesParams struct {
+	After int64
+	Limit int64
+}
+
+func (mc *ModelContext) GetRules(ctx context.Context, arg GetRulesParams) ([]GetRulesRow, error) {
+	if arg.Limit == 0 {
+		arg.Limit = 100
+	}
+	stmt := sq.Select().
+		Column("rule.id").
+		Column("rule.created_at").
+		Column("rule.updated_at").
+		Column("rule.start_date").
+		Column("rule.end_date").
+		Column("rule.test_expr").
+		Column("rule.cat_id").
+		Column("rule.amount_expr").
+		Column("rule.desc_expr").
+		Column("rule.date_expr").
+		Column("rule.ord").
+		Column("COALESCE(cat.id, 0)").
+		Column("COALESCE(cat.created_at, '')").
+		Column("COALESCE(cat.updated_at, '')").
+		Column("COALESCE(cat.name, '')").
+		Column("COALESCE(cat.kind, '')").
+		Column("COALESCE(cat.is_active, 0)").
+		From("rule").
+		LeftJoin("cat ON rule.cat_id = cat.id").
+		OrderBy("rule.ord").
+		Where(sq.Gt{"rule.ord": arg.After}).
+		Limit(uint64(arg.Limit))
+	sql, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, err
+	}
+	// remainder of this function is copied from sqlc/query.sql.go
+	rows, err := mc.DB.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRulesRow
+	for rows.Next() {
+		var i GetRulesRow
+		if err := rows.Scan(
+			&i.Rule.ID,
+			&i.Rule.CreatedAt,
+			&i.Rule.UpdatedAt,
+			&i.Rule.StartDate,
+			&i.Rule.EndDate,
+			&i.Rule.TestExpr,
+			&i.Rule.CatID,
+			&i.Rule.AmountExpr,
+			&i.Rule.DescExpr,
+			&i.Rule.DateExpr,
+			&i.Rule.Ord,
+			&i.Cat.ID,
+			&i.Cat.CreatedAt,
+			&i.Cat.UpdatedAt,
+			&i.Cat.Name,
+			&i.Cat.Kind,
+			&i.Cat.IsActive,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (mc *ModelContext) CreateRule(ctx context.Context, arg sqlc.CreateRuleParams) (int64, error) {
+	id, err := mc.Queries.CreateRule(ctx, arg)
+	if err != nil {
+		return 0, err
+	}
+	// default ordering key is the rule ID
+	err = mc.Queries.UpdateRuleOrd(ctx, sqlc.UpdateRuleOrdParams{
+		ID:  id,
+		Ord: id,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}

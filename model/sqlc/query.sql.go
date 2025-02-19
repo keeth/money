@@ -187,7 +187,7 @@ func (q *Queries) CreatePlanPeriod(ctx context.Context, arg CreatePlanPeriodPara
 	return err
 }
 
-const createRule = `-- name: CreateRule :exec
+const createRule = `-- name: CreateRule :one
 INSERT INTO rule (
     start_date, 
     end_date, 
@@ -206,7 +206,7 @@ INSERT INTO rule (
     ?,
     ?,
     ?
-)
+) RETURNING id
 `
 
 type CreateRuleParams struct {
@@ -220,8 +220,8 @@ type CreateRuleParams struct {
 	Ord        int64
 }
 
-func (q *Queries) CreateRule(ctx context.Context, arg CreateRuleParams) error {
-	_, err := q.db.ExecContext(ctx, createRule,
+func (q *Queries) CreateRule(ctx context.Context, arg CreateRuleParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createRule,
 		arg.StartDate,
 		arg.EndDate,
 		arg.TestExpr,
@@ -231,7 +231,9 @@ func (q *Queries) CreateRule(ctx context.Context, arg CreateRuleParams) error {
 		arg.DateExpr,
 		arg.Ord,
 	)
-	return err
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deactivateCat = `-- name: DeactivateCat :exec
@@ -322,6 +324,24 @@ func (q *Queries) GetAccs(ctx context.Context) ([]Acc, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCatByName = `-- name: GetCatByName :one
+SELECT id, created_at, updated_at, name, kind, is_active FROM cat WHERE name = ? LIMIT 1
+`
+
+func (q *Queries) GetCatByName(ctx context.Context, name string) (Cat, error) {
+	row := q.db.QueryRowContext(ctx, getCatByName, name)
+	var i Cat
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Kind,
+		&i.IsActive,
+	)
+	return i, err
 }
 
 const getCats = `-- name: GetCats :many
@@ -503,10 +523,11 @@ func (q *Queries) GetPlans(ctx context.Context, arg GetPlansParams) ([]Plan, err
 }
 
 const getRules = `-- name: GetRules :many
-SELECT id, created_at, updated_at, start_date, end_date, test_expr, cat_id, amount_expr, desc_expr, date_expr, ord FROM rule 
-WHERE (start_date IS NULL OR start_date >= ?) 
-    AND (end_date IS NULL OR end_date < ?)
-ORDER BY ord
+SELECT rule.id, rule.created_at, rule.updated_at, rule.start_date, rule.end_date, rule.test_expr, rule.cat_id, rule.amount_expr, rule.desc_expr, rule.date_expr, rule.ord, cat.id, cat.created_at, cat.updated_at, cat.name, cat.kind, cat.is_active FROM rule 
+LEFT JOIN cat ON rule.cat_id = cat.id
+WHERE (rule.start_date IS NULL OR rule.start_date >= ?) 
+    AND (rule.end_date IS NULL OR rule.end_date < ?)
+ORDER BY rule.ord
 `
 
 type GetRulesParams struct {
@@ -514,27 +535,38 @@ type GetRulesParams struct {
 	EndDate   sql.NullString
 }
 
-func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]Rule, error) {
+type GetRulesRow struct {
+	Rule Rule
+	Cat  Cat
+}
+
+func (q *Queries) GetRules(ctx context.Context, arg GetRulesParams) ([]GetRulesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getRules, arg.StartDate, arg.EndDate)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Rule
+	var items []GetRulesRow
 	for rows.Next() {
-		var i Rule
+		var i GetRulesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.StartDate,
-			&i.EndDate,
-			&i.TestExpr,
-			&i.CatID,
-			&i.AmountExpr,
-			&i.DescExpr,
-			&i.DateExpr,
-			&i.Ord,
+			&i.Rule.ID,
+			&i.Rule.CreatedAt,
+			&i.Rule.UpdatedAt,
+			&i.Rule.StartDate,
+			&i.Rule.EndDate,
+			&i.Rule.TestExpr,
+			&i.Rule.CatID,
+			&i.Rule.AmountExpr,
+			&i.Rule.DescExpr,
+			&i.Rule.DateExpr,
+			&i.Rule.Ord,
+			&i.Cat.ID,
+			&i.Cat.CreatedAt,
+			&i.Cat.UpdatedAt,
+			&i.Cat.Name,
+			&i.Cat.Kind,
+			&i.Cat.IsActive,
 		); err != nil {
 			return nil, err
 		}
@@ -746,6 +778,20 @@ func (q *Queries) UpdateRule(ctx context.Context, arg UpdateRuleParams) error {
 		arg.Ord,
 		arg.ID,
 	)
+	return err
+}
+
+const updateRuleOrd = `-- name: UpdateRuleOrd :exec
+UPDATE rule SET ord = ? WHERE id = ?
+`
+
+type UpdateRuleOrdParams struct {
+	Ord int64
+	ID  int64
+}
+
+func (q *Queries) UpdateRuleOrd(ctx context.Context, arg UpdateRuleOrdParams) error {
+	_, err := q.db.ExecContext(ctx, updateRuleOrd, arg.Ord, arg.ID)
 	return err
 }
 

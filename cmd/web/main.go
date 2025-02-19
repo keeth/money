@@ -36,5 +36,6 @@ func main() {
 	e.GET("/", web.GetIndex)
 	e.GET("/tx", web.GetTxsEndpoint)
 	e.GET("/cat", web.GetCatsEndpoint)
+	e.GET("/rule", web.GetRulesEndpoint)
 	e.Logger.Fatal(e.Start(":" + portStr))
 }

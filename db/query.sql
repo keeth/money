@@ -63,6 +63,10 @@ RETURNING id, created_at, updated_at;
 -- name: GetCats :many
 SELECT * FROM cat WHERE is_active = 1 ORDER BY name;
 
+-- name: GetCatByName :one
+SELECT * FROM cat WHERE name = ? LIMIT 1;
+
+
 -- name: CreateCat :one
 INSERT INTO cat (
     name, 
@@ -145,12 +149,13 @@ WHERE plan_id = ?
     AND period_end < ?;
 
 -- name: GetRules :many
-SELECT * FROM rule 
-WHERE (start_date IS NULL OR start_date >= ?) 
-    AND (end_date IS NULL OR end_date < ?)
-ORDER BY ord;
+SELECT sqlc.embed(rule), sqlc.embed(cat) FROM rule 
+LEFT JOIN cat ON rule.cat_id = cat.id
+WHERE (rule.start_date IS NULL OR rule.start_date >= ?) 
+    AND (rule.end_date IS NULL OR rule.end_date < ?)
+ORDER BY rule.ord;
 
--- name: CreateRule :exec
+-- name: CreateRule :one
 INSERT INTO rule (
     start_date, 
     end_date, 
@@ -169,7 +174,7 @@ INSERT INTO rule (
     ?,
     ?,
     ?
-);
+) RETURNING id;
 
 -- name: UpdateRule :exec
 UPDATE rule SET 
@@ -182,6 +187,9 @@ UPDATE rule SET
     date_expr = ?,
     ord = ?
 WHERE id = ?;
+
+-- name: UpdateRuleOrd :exec
+UPDATE rule SET ord = ? WHERE id = ?;
 
 -- name: DeleteRule :exec
 DELETE FROM rule WHERE id = ?;

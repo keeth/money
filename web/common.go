@@ -50,6 +50,15 @@ func paginationParams(c echo.Context) (string, int64) {
 	return after, limit
 }
 
+func paginationParamsInt(c echo.Context) (int64, int64) {
+	after, limit := paginationParams(c)
+	afterInt, err := strconv.ParseInt(after, 10, 64)
+	if err != nil {
+		return 0, limit
+	}
+	return afterInt, limit
+}
+
 func render(c echo.Context, err error, node Node) error {
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
