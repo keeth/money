@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	sqlc "github.com/keeth/money/model/sqlc"
 )
@@ -45,14 +46,21 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 	if accRow.Created {
 		result.AccCreated++
 	}
-
+	rules, err := a.Model.GetAllRules(ctx)
+	if err != nil {
+		return ImportResult{}, err
+	}
 	for _, tx := range resp.Transactions {
+		_, err := core.ApplyRules(ctx, rules, tx)
+		if err != nil {
+			return ImportResult{}, err
+		}
 		txRow, err := a.Model.CreateOrUpdateTx(ctx, sqlc.CreateOrUpdateTxParams{
 			Date:   tx.Date,
 			Amount: tx.Amount,
 			Desc:   tx.Desc,
 			AccID:  accRow.Acc.ID,
-			Xid:    tx.ID,
+			Xid:    tx.Xid,
 		})
 		if err != nil {
 			return ImportResult{}, err

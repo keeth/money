@@ -53,14 +53,6 @@ func compileTests(rules []model.Rule) ([]*vm.Program, error) {
 	return tests, nil
 }
 
-func getRulesFromRows(rows []model.GetRulesRow) []model.Rule {
-	rules := []model.Rule{}
-	for _, row := range rows {
-		rules = append(rules, row.Rule)
-	}
-	return rules
-}
-
 func processExpr[T any](exprStr string, tx sqlc.Tx) (T, error) {
 	var zero T
 	program, err := compileExpr(exprStr)
@@ -78,18 +70,10 @@ func processExpr[T any](exprStr string, tx sqlc.Tx) (T, error) {
 	return newValue, nil
 }
 
-func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
-	rows, err := mc.GetRules(ctx, model.GetRulesParams{
-		After: 0,
-		Limit: 100,
-	})
-	if err != nil {
-		return err
-	}
-	rules := getRulesFromRows(rows)
+func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, error) {
 	tests, err := compileTests(rules)
 	if err != nil {
-		return err
+		return false, err
 	}
 	// save the currently persisted values of the tx for later comparison
 	prevAmount := tx.Amount
@@ -114,7 +98,7 @@ func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
 	for i, test := range tests {
 		testResult, err := evaluateTest(test, tx)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if !testResult {
 			continue
@@ -127,7 +111,7 @@ func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
 
 		if rule.AmountExpr.Valid {
 			if amount, err := processExpr[float64](rule.AmountExpr.String, tx); err != nil {
-				return err
+				return false, err
 			} else {
 				tx.Amount = amount
 			}
@@ -135,7 +119,7 @@ func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
 
 		if rule.DescExpr.Valid {
 			if desc, err := processExpr[string](rule.DescExpr.String, tx); err != nil {
-				return err
+				return false, err
 			} else {
 				tx.Desc = desc
 			}
@@ -143,7 +127,7 @@ func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
 
 		if rule.DateExpr.Valid {
 			if date, err := processExpr[string](rule.DateExpr.String, tx); err != nil {
-				return err
+				return false, err
 			} else {
 				tx.Date = date
 			}
@@ -183,20 +167,5 @@ func ApplyRules(ctx context.Context, mc model.ModelContext, tx sqlc.Tx) error {
 		}
 		dirty = true
 	}
-	if dirty {
-		return mc.UpdateTx(ctx, model.UpdateTxParams{
-			UpdateTxParams: sqlc.UpdateTxParams{
-				ID:         tx.ID,
-				OrigAmount: tx.OrigAmount,
-				Amount:     tx.Amount,
-				OrigDesc:   tx.OrigDesc,
-				Desc:       tx.Desc,
-				OrigDate:   tx.OrigDate,
-				Date:       tx.Date,
-				CatID:      tx.CatID,
-			},
-			Xid: tx.Xid,
-		})
-	}
-	return nil
+	return dirty, nil
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	ofx "github.com/aclindsa/ofxgo"
+	sqlc "github.com/keeth/money/model/sqlc"
 )
 
 var (
@@ -34,7 +35,7 @@ func cleanMemo(s string) string {
 	return memoRe.ReplaceAllString(s, "")
 }
 
-func ParseOfxTransaction(trans ofx.Transaction) ParsedTransaction {
+func ParseOfxTransaction(trans ofx.Transaction) sqlc.Tx {
 	amount, _ := trans.TrnAmt.Float64()
 	var desc []string
 	if trans.Name != "" {
@@ -45,16 +46,16 @@ func ParseOfxTransaction(trans ofx.Transaction) ParsedTransaction {
 	if trans.Memo != "" {
 		desc = append(desc, cleanMemo(trans.Memo.String()))
 	}
-	return ParsedTransaction{
+	return sqlc.Tx{
 		Date:   trans.DtPosted.Format("2006-01-02"),
 		Desc:   cleanDesc(strings.Join(desc, " ")),
 		Amount: amount,
-		ID:     trans.FiTID.String(),
+		Xid:    trans.FiTID.String(),
 	}
 }
 
 type ParsedResponse struct {
-	Transactions []ParsedTransaction
+	Transactions []sqlc.Tx
 	Kind         string
 	ID           string
 }
@@ -68,7 +69,7 @@ func ParseOfxResponse(file *os.File) (ParsedResponse, error) {
 	xidParts := []string{}
 	if len(resp.Bank) > 0 {
 		if stmt, ok := resp.Bank[0].(*ofx.StatementResponse); ok {
-			parsed.Transactions = make([]ParsedTransaction, len(stmt.BankTranList.Transactions))
+			parsed.Transactions = make([]sqlc.Tx, len(stmt.BankTranList.Transactions))
 			for i, tx := range stmt.BankTranList.Transactions {
 				parsed.Transactions[i] = ParseOfxTransaction(tx)
 			}
@@ -85,7 +86,7 @@ func ParseOfxResponse(file *os.File) (ParsedResponse, error) {
 		parsed.Kind = "bank"
 	} else if len(resp.CreditCard) > 0 {
 		if stmt, ok := resp.CreditCard[0].(*ofx.CCStatementResponse); ok {
-			parsed.Transactions = make([]ParsedTransaction, len(stmt.BankTranList.Transactions))
+			parsed.Transactions = make([]sqlc.Tx, len(stmt.BankTranList.Transactions))
 			for i, tx := range stmt.BankTranList.Transactions {
 				parsed.Transactions[i] = ParseOfxTransaction(tx)
 			}

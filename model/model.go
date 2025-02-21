@@ -318,6 +318,30 @@ func (mc *ModelContext) GetRules(ctx context.Context, arg GetRulesParams) ([]Get
 	return items, nil
 }
 
+func (mc *ModelContext) GetAllRules(ctx context.Context) ([]Rule, error) {
+	allRows := []GetRulesRow{}
+	after := int64(0)
+	for {
+		rows, err := mc.GetRules(ctx, GetRulesParams{
+			After: after,
+			Limit: 100,
+		})
+		if err != nil {
+			return nil, err
+		}
+		allRows = append(allRows, rows...)
+		if len(rows) < 100 {
+			break
+		}
+		after = rows[len(rows)-1].Rule.Ord
+	}
+	rules := []Rule{}
+	for _, row := range allRows {
+		rules = append(rules, row.Rule)
+	}
+	return rules, nil
+}
+
 func (mc *ModelContext) CreateRule(ctx context.Context, arg sqlc.CreateRuleParams) (int64, error) {
 	id, err := mc.Queries.CreateRule(ctx, arg)
 	if err != nil {
