@@ -33,8 +33,12 @@ LIMIT ?;
 -- name: UpdateTx :exec
 UPDATE tx SET
     date = ?,
+    orig_date = ?,
     desc = ?,
+    orig_desc = ?,
     amount = ?,
+    orig_amount = ?,
+    cat_id = ?,
     ord = ?
 WHERE id = ?;
 

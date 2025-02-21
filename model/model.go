@@ -9,13 +9,17 @@ import (
 	sqlc "github.com/keeth/money/model/sqlc"
 )
 
+func makeTxOrderingKey(date string, xid string) string {
+	return date + " " + xid
+}
+
 type CreateOrUpdateTxResult struct {
 	ID      int64
 	Created bool
 }
 
 func (mc *ModelContext) CreateOrUpdateTx(ctx context.Context, arg sqlc.CreateOrUpdateTxParams) (CreateOrUpdateTxResult, error) {
-	arg.Ord = arg.Date + " " + arg.Xid
+	arg.Ord = makeTxOrderingKey(arg.Date, arg.Xid)
 	row, err := mc.Queries.CreateOrUpdateTx(ctx, arg)
 	result := CreateOrUpdateTxResult{}
 	if err != nil {
@@ -24,6 +28,16 @@ func (mc *ModelContext) CreateOrUpdateTx(ctx context.Context, arg sqlc.CreateOrU
 	result.ID = row.ID
 	result.Created = row.CreatedAt == row.UpdatedAt
 	return result, nil
+}
+
+type UpdateTxParams struct {
+	sqlc.UpdateTxParams
+	Xid string
+}
+
+func (mc *ModelContext) UpdateTx(ctx context.Context, arg UpdateTxParams) error {
+	arg.Ord = makeTxOrderingKey(arg.Date, arg.Xid)
+	return mc.Queries.UpdateTx(ctx, arg.UpdateTxParams)
 }
 
 type GetOrCreateAccResult struct {

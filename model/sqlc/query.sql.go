@@ -798,25 +798,37 @@ func (q *Queries) UpdateRuleOrd(ctx context.Context, arg UpdateRuleOrdParams) er
 const updateTx = `-- name: UpdateTx :exec
 UPDATE tx SET
     date = ?,
+    orig_date = ?,
     desc = ?,
+    orig_desc = ?,
     amount = ?,
+    orig_amount = ?,
+    cat_id = ?,
     ord = ?
 WHERE id = ?
 `
 
 type UpdateTxParams struct {
-	Date   string
-	Desc   string
-	Amount float64
-	Ord    string
-	ID     int64
+	Date       string
+	OrigDate   sql.NullString
+	Desc       string
+	OrigDesc   sql.NullString
+	Amount     float64
+	OrigAmount sql.NullFloat64
+	CatID      sql.NullInt64
+	Ord        string
+	ID         int64
 }
 
 func (q *Queries) UpdateTx(ctx context.Context, arg UpdateTxParams) error {
 	_, err := q.db.ExecContext(ctx, updateTx,
 		arg.Date,
+		arg.OrigDate,
 		arg.Desc,
+		arg.OrigDesc,
 		arg.Amount,
+		arg.OrigAmount,
+		arg.CatID,
 		arg.Ord,
 		arg.ID,
 	)
