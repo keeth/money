@@ -33,7 +33,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 
 	resp, err := ParseOfxResponse(file)
 	if err != nil {
-		return ImportResult{}, err
+		return result, err
 	}
 
 	accRow, err := a.Model.GetOrCreateAcc(ctx, sqlc.CreateAccParams{
@@ -41,29 +41,33 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 		Kind: resp.Kind,
 	}, maxAccounts)
 	if err != nil {
-		return ImportResult{}, err
+		return result, err
 	}
 	if accRow.Created {
 		result.AccCreated++
 	}
 	rules, err := a.Model.GetAllRules(ctx)
 	if err != nil {
-		return ImportResult{}, err
+		return result, err
 	}
 	for _, tx := range resp.Transactions {
 		_, err := core.ApplyRules(ctx, rules, tx)
 		if err != nil {
-			return ImportResult{}, err
+			return result, err
 		}
 		txRow, err := a.Model.CreateOrUpdateTx(ctx, sqlc.CreateOrUpdateTxParams{
-			Date:   tx.Date,
-			Amount: tx.Amount,
-			Desc:   tx.Desc,
-			AccID:  accRow.Acc.ID,
-			Xid:    tx.Xid,
+			Date:       tx.Date,
+			OrigDate:   tx.OrigDate,
+			Amount:     tx.Amount,
+			OrigAmount: tx.OrigAmount,
+			Desc:       tx.Desc,
+			OrigDesc:   tx.OrigDesc,
+			AccID:      accRow.Acc.ID,
+			Xid:        tx.Xid,
+			CatID:      tx.CatID,
 		})
 		if err != nil {
-			return ImportResult{}, err
+			return result, err
 		}
 		if txRow.Created {
 			result.TxCreated++

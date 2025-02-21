@@ -76,14 +76,19 @@ INSERT INTO tx (
     amount, 
     orig_amount, 
     acc_id,
+    cat_id,
     ord
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 ) 
 ON CONFLICT (xid, acc_id) DO UPDATE SET
     date = EXCLUDED.date,
+    orig_date = EXCLUDED.orig_date,
     desc = EXCLUDED.desc,
+    orig_desc = EXCLUDED.orig_desc,
     amount = EXCLUDED.amount,
+    orig_amount = EXCLUDED.orig_amount,
+    cat_id = EXCLUDED.cat_id,
     ord = EXCLUDED.ord,
     updated_at = current_timestamp
 RETURNING id, created_at, updated_at
@@ -98,6 +103,7 @@ type CreateOrUpdateTxParams struct {
 	Amount     float64
 	OrigAmount sql.NullFloat64
 	AccID      int64
+	CatID      sql.NullInt64
 	Ord        string
 }
 
@@ -117,6 +123,7 @@ func (q *Queries) CreateOrUpdateTx(ctx context.Context, arg CreateOrUpdateTxPara
 		arg.Amount,
 		arg.OrigAmount,
 		arg.AccID,
+		arg.CatID,
 		arg.Ord,
 	)
 	var i CreateOrUpdateTxRow

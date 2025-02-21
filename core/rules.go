@@ -82,7 +82,7 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 	prevCatID := tx.CatID
 
 	// reset the tx to any original values before applying the rules.
-	// applying the rules should be idempotent.
+	// rule application should be idempotent.
 	if tx.OrigAmount.Valid {
 		tx.Amount = tx.OrigAmount.Float64
 	}
