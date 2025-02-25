@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	"github.com/labstack/echo/v4"
 	. "maragu.dev/gomponents"
@@ -23,7 +23,7 @@ func GetCatRows(cats []model.Cat) Node {
 	})}
 }
 
-func GetCats(ctx context.Context, app *money.App, params model.GetCatsParams) (error, Node) {
+func GetCats(ctx context.Context, app *core.App, params model.GetCatsParams) (error, Node) {
 	cats, err := app.Model.GetCats(ctx, params)
 	if err != nil {
 		slog.Error("failed to get cats", "error", err)

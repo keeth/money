@@ -1,11 +1,11 @@
 package money
 
 import (
-	"github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	"github.com/labstack/echo/v4"
 )
 
 type Context struct {
 	echo.Context
-	App *money.App
+	App *core.App
 }

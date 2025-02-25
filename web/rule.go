@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	"github.com/labstack/echo/v4"
 	. "maragu.dev/gomponents"
@@ -43,7 +43,7 @@ func GetRuleRows(rows []model.GetRulesRow) Node {
 	})}
 }
 
-func GetRules(ctx context.Context, app *money.App, params model.GetRulesParams) (error, Node) {
+func GetRules(ctx context.Context, app *core.App, params model.GetRulesParams) (error, Node) {
 	rules, err := app.Model.GetRules(ctx, params)
 	if err != nil {
 		slog.Error("failed to get rules", "error", err)

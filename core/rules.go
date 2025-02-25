@@ -70,7 +70,7 @@ func processExpr[T any](exprStr string, tx sqlc.Tx) (T, error) {
 	return newValue, nil
 }
 
-func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, error) {
+func ApplyRules(ctx context.Context, rules []model.Rule, tx *sqlc.Tx) (bool, error) {
 	tests, err := compileTests(rules)
 	if err != nil {
 		return false, err
@@ -96,7 +96,7 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 
 	// if rule matches, apply the changes
 	for i, test := range tests {
-		testResult, err := evaluateTest(test, tx)
+		testResult, err := evaluateTest(test, *tx)
 		if err != nil {
 			return false, err
 		}
@@ -110,7 +110,7 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 		}
 
 		if rule.AmountExpr.Valid {
-			if amount, err := processExpr[float64](rule.AmountExpr.String, tx); err != nil {
+			if amount, err := processExpr[float64](rule.AmountExpr.String, *tx); err != nil {
 				return false, err
 			} else {
 				tx.Amount = amount
@@ -118,7 +118,7 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 		}
 
 		if rule.DescExpr.Valid {
-			if desc, err := processExpr[string](rule.DescExpr.String, tx); err != nil {
+			if desc, err := processExpr[string](rule.DescExpr.String, *tx); err != nil {
 				return false, err
 			} else {
 				tx.Desc = desc
@@ -126,7 +126,7 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 		}
 
 		if rule.DateExpr.Valid {
-			if date, err := processExpr[string](rule.DateExpr.String, tx); err != nil {
+			if date, err := processExpr[string](rule.DateExpr.String, *tx); err != nil {
 				return false, err
 			} else {
 				tx.Date = date
@@ -137,7 +137,6 @@ func ApplyRules(ctx context.Context, rules []model.Rule, tx sqlc.Tx) (bool, erro
 	// if a rule changes a field, start preserving the original value in a separate field (copy on write).
 	dirty := false
 	if prevCatID != tx.CatID {
-		tx.CatID = prevCatID
 		dirty = true
 	}
 	if prevAmount != tx.Amount {

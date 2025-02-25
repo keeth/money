@@ -2,23 +2,10 @@ package money
 
 import (
 	"context"
-	"database/sql"
 	"os"
 
-	core "github.com/keeth/money/core"
-	model "github.com/keeth/money/model"
 	sqlc "github.com/keeth/money/model/sqlc"
 )
-
-type App struct {
-	Model *model.ModelContext
-}
-
-func NewApp(db *sql.DB) *App {
-	return &App{
-		Model: model.NewModelContext(db),
-	}
-}
 
 var maxAccounts = 10
 
@@ -51,7 +38,7 @@ func (a *App) ImportOFX(ctx context.Context, file *os.File) (ImportResult, error
 		return result, err
 	}
 	for _, tx := range resp.Transactions {
-		_, err := core.ApplyRules(ctx, rules, tx)
+		_, err := ApplyRules(ctx, rules, &tx)
 		if err != nil {
 			return result, err
 		}

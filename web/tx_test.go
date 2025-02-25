@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	money "github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ import (
 
 type WebTxTestSuite struct {
 	suite.Suite
-	app *money.App
+	app *core.App
 }
 
 // Make sure that VariableThatShouldStartAtFive is set to five
@@ -28,7 +28,7 @@ func (suite *WebTxTestSuite) SetupTest() {
 	ctx := context.Background()
 	gm := golangmigrator.New("../db/migrations")
 	db := sqlitestdb.New(t, sqlitestdb.Config{Driver: "sqlite3"}, gm)
-	suite.app = money.NewApp(db)
+	suite.app = core.NewApp(db)
 	ofxFile, err := os.Open("../testdata/ofx/bank1.qfx")
 	defer ofxFile.Close()
 	assert.NoError(t, err)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	sqlc "github.com/keeth/money/model/sqlc"
 	"github.com/labstack/echo/v4"
@@ -26,7 +26,7 @@ func GetTxRows(txs []sqlc.GetTxsRow) Node {
 	})}
 }
 
-func GetTxs(ctx context.Context, app *money.App, params model.GetTxsParams) (error, Node) {
+func GetTxs(ctx context.Context, app *core.App, params model.GetTxsParams) (error, Node) {
 	txs, err := app.Model.GetTxs(ctx, params)
 	if err != nil {
 		slog.Error("failed to get txs", "error", err)

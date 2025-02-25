@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	money "github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	web "github.com/keeth/money/web"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := money.NewApp(db)
+	app := core.NewApp(db)
 
 	portStr := os.Getenv("PORT")
 	if portStr == "" {

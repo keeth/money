@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	money "github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	model "github.com/keeth/money/model"
 	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
@@ -17,7 +17,7 @@ import (
 
 type WebCatTestSuite struct {
 	suite.Suite
-	app *money.App
+	app *core.App
 }
 
 // Make sure that VariableThatShouldStartAtFive is set to five
@@ -27,7 +27,7 @@ func (suite *WebCatTestSuite) SetupTest() {
 	ctx := context.Background()
 	gm := golangmigrator.New("../db/migrations")
 	db := sqlitestdb.New(t, sqlitestdb.Config{Driver: "sqlite3"}, gm)
-	suite.app = money.NewApp(db)
+	suite.app = core.NewApp(db)
 	for _, cat := range []string{"groceries", "rent", "utilities"} {
 		_, err := suite.app.Model.Queries.CreateCat(ctx, sqlc.CreateCatParams{
 			Name: cat,

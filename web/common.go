@@ -3,6 +3,7 @@ package money
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -85,7 +86,7 @@ func tablePage(props PageProps, cols []string, rows Node) (error, Node) {
 
 func nextPageNode(path string, after string) Node {
 	return Group{
-		hx.Get(fmt.Sprintf("/%s?after=%s", path, after)),
+		hx.Get(fmt.Sprintf("/%s?after=%s", path, url.QueryEscape(after))),
 		hx.Trigger("revealed"),
 		hx.Swap("afterend"),
 	}

@@ -342,7 +342,9 @@ func (mc *ModelContext) GetAllRules(ctx context.Context) ([]Rule, error) {
 	return rules, nil
 }
 
-func (mc *ModelContext) CreateRule(ctx context.Context, arg sqlc.CreateRuleParams) (int64, error) {
+type CreateRuleParams = sqlc.CreateRuleParams
+
+func (mc *ModelContext) CreateRule(ctx context.Context, arg CreateRuleParams) (int64, error) {
 	id, err := mc.Queries.CreateRule(ctx, arg)
 	if err != nil {
 		return 0, err

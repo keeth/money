@@ -7,14 +7,14 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/keeth/money"
+	core "github.com/keeth/money/core"
 	sqlc "github.com/keeth/money/model/sqlc"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 )
 
 var defaultLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var app *money.App
+var app *core.App
 
 func main() {
 	slog.SetDefault(defaultLogger)
@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app = money.NewApp(db)
+	app = core.NewApp(db)
 
 	var rootCmd = &cobra.Command{
 		Use:   "money",
