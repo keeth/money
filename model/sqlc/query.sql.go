@@ -131,7 +131,7 @@ func (q *Queries) CreateOrUpdateTx(ctx context.Context, arg CreateOrUpdateTxPara
 	return i, err
 }
 
-const createPlan = `-- name: CreatePlan :exec
+const createPlan = `-- name: CreatePlan :one
 INSERT INTO plan (
     start_date, 
     end_date, 
@@ -144,7 +144,7 @@ INSERT INTO plan (
     ?,
     ?,
     ?
-)
+) RETURNING id
 `
 
 type CreatePlanParams struct {
@@ -155,15 +155,17 @@ type CreatePlanParams struct {
 	Period     string
 }
 
-func (q *Queries) CreatePlan(ctx context.Context, arg CreatePlanParams) error {
-	_, err := q.db.ExecContext(ctx, createPlan,
+func (q *Queries) CreatePlan(ctx context.Context, arg CreatePlanParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createPlan,
 		arg.StartDate,
 		arg.EndDate,
 		arg.AmountExpr,
 		arg.CatID,
 		arg.Period,
 	)
-	return err
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createPlanPeriod = `-- name: CreatePlanPeriod :exec

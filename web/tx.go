@@ -22,6 +22,11 @@ func GetTxRows(txs []sqlc.GetTxsRow) Node {
 			Td(Text(txRow.Tx.Date)),
 			Td(Text(txRow.Tx.Desc)),
 			Td(Text(fmt.Sprintf("%.2f", txRow.Tx.Amount))),
+			Td(
+				If(txRow.Cat.ID > 0,
+					Text(txRow.Cat.Name),
+				),
+			),
 		)
 	})}
 }
@@ -38,7 +43,7 @@ func GetTxs(ctx context.Context, app *core.App, params model.GetTxsParams) (erro
 			Title:       "Transactions",
 			Description: "Transactions",
 		},
-			[]string{"Date", "Description", "Amount"},
+			[]string{"Date", "Description", "Amount", "Category"},
 			rowNodes,
 		)
 	}

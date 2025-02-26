@@ -121,7 +121,32 @@ func main() {
 	createRuleCmd.Flags().String("desc", "", "Description pattern")
 	createRuleCmd.Flags().String("date", "", "Date pattern")
 
-	rootCmd.AddCommand(importCmd, createCatCmd, createRuleCmd)
+	var createPlanCmd = &cobra.Command{
+		Use:   "create-plan [period] [category] [amount]",
+		Short: "Create a new plan",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cat, err := app.Model.Queries.GetCatByName(context.Background(), args[1])
+			if err != nil {
+				return err
+			}
+			if cat.ID == 0 {
+				return fmt.Errorf("category not found: %s", args[1])
+			}
+			id, err := app.Model.Queries.CreatePlan(context.Background(), sqlc.CreatePlanParams{
+				Period:     args[0],
+				CatID:      cat.ID,
+				AmountExpr: args[2],
+			})
+			if err != nil {
+				return err
+			}
+			slog.Info("plan created", "id", id)
+			return nil
+		},
+	}
+
+	rootCmd.AddCommand(importCmd, createCatCmd, createRuleCmd, createPlanCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		slog.Error("command failed", "err", err)

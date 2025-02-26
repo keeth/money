@@ -104,7 +104,7 @@ WHERE (start_date IS NULL OR start_date >= ?)
     AND (end_date IS NULL OR end_date < ?)
 ORDER BY start_date DESC;
 
--- name: CreatePlan :exec
+-- name: CreatePlan :one
 INSERT INTO plan (
     start_date, 
     end_date, 
@@ -117,7 +117,7 @@ INSERT INTO plan (
     ?,
     ?,
     ?
-);
+) RETURNING id;
 
 -- name: UpdatePlan :exec
 UPDATE plan SET start_date = ?, end_date = ?, amount_expr = ? WHERE id = ?;
